@@ -135,3 +135,12 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/androidstudio
+
+# ---- SENTINEL fork: secrets, local config, and build caches (never commit) ----
+# Release signing passwords (the .jks key itself is already ignored by *.jks above).
+keystore.properties
+# Docker build's Gradle cache (multi-GB) used by the headless APK build.
+.gradle-docker/
+# Windows-specific local config + ad-hoc diagnostics/logcat dumps.
+local.properties.windows
+diagnostics/

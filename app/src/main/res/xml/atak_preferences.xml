@@ -3,11 +3,23 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:key="atak_preferences">
     <PreferenceCategory android:title="@string/atak_preferences">
+        <Preference
+            android:key="import_tak_zip"
+            android:title="@string/import_tak_zip_title"
+            app:summary="@string/import_tak_zip_summary" />
         <SwitchPreference
             android:defaultValue="false"
             android:key="send_cot"
             android:title="@string/send_cots"
-            app:summary="" />
+            app:summary="@string/send_cots_summary" />
+        <EditTextPreference
+            android:key="atak_callsign"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:defaultValue="SENTINEL"
+            android:title="@string/atak_callsign"
+            app:useSimpleSummaryProvider="true"
+            android:dependency="send_cot" />
         <SwitchPreference
             android:defaultValue="false"
             android:key="send_stream_details"

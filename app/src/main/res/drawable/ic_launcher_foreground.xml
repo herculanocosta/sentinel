@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon foreground for SENTINEL.
+  108x108 viewport. Safe zone (the part guaranteed visible on round / squircle
+  masks) is the inner 66dp circle centered at (54,54).
+
+  Design: four "viewfinder" corner brackets surrounding a central lens aperture
+  (concentric circles). Pure white on transparent; the background layer paints
+  the tactical color.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Top-left bracket -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M30,30 L46,30 L46,34 L34,34 L34,46 L30,46 Z" />
+    <!-- Top-right bracket -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M62,30 L78,30 L78,46 L74,46 L74,34 L62,34 Z" />
+    <!-- Bottom-left bracket -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M30,62 L34,62 L34,74 L46,74 L46,78 L30,78 Z" />
+    <!-- Bottom-right bracket -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M74,62 L78,62 L78,78 L62,78 L62,74 L74,74 Z" />
+
+    <!-- Outer lens ring -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,40 a14,14 0 1,0 0.01,0 z M54,44 a10,10 0 1,1 -0.01,0 z" />
+    <!-- Inner pupil -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,49 a5,5 0 1,0 0.01,0 z" />
+</vector>

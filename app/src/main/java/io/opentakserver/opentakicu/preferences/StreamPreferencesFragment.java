@@ -1,12 +1,16 @@
 package io.opentakserver.opentakicu.preferences;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUtils;
 import android.os.NetworkOnMainThreadException;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.pedro.common.AudioCodec;
@@ -41,6 +45,8 @@ import androidx.preference.SwitchPreference;
 import androidx.preference.SwitchPreferenceCompat;
 import io.opentakserver.opentakicu.R;
 import io.opentakserver.opentakicu.contants.Preferences;
+import io.opentakserver.opentakicu.presets.ServerPresets;
+import io.opentakserver.opentakicu.presets.ServerPresetsActivity;
 
 public class StreamPreferencesFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceClickListener, Preference.OnPreferenceChangeListener {
     private final static String LOGTAG = "StreamPreferences";
@@ -94,11 +100,109 @@ public class StreamPreferencesFragment extends PreferenceFragmentCompat implemen
         setPreferencesFromResource(R.xml.streaming_preferences, rootKey);
         findPreference(Preferences.STREAM_CERTIFICATE).setOnPreferenceClickListener(this);
         findPreference("test_certificate").setOnPreferenceClickListener(this);
+        Preference presets = findPreference("server_presets");
+        if (presets != null) {
+            presets.setOnPreferenceClickListener(this);
+            updatePresetsSummary(presets);
+        }
+        Preference batteryOpt = findPreference("battery_optimization");
+        if (batteryOpt != null) {
+            batteryOpt.setOnPreferenceClickListener(this);
+            updateBatteryOptimizationSummary(batteryOpt);
+        }
+        // Wire the floating-bubble switch: when the user flips it on, check for the SYSTEM_ALERT_WINDOW
+        // permission and walk them to the system grant page if missing.
+        SwitchPreference bubble = findPreference(Preferences.FLOATING_BUBBLE);
+        if (bubble != null) {
+            bubble.setOnPreferenceChangeListener((p, newValue) -> {
+                boolean enabled = Boolean.TRUE.equals(newValue);
+                if (enabled && !io.opentakserver.opentakicu.overlay.FloatingBubbleManager.hasOverlayPermission(getContext())) {
+                    new AlertDialog.Builder(getActivity())
+                            .setTitle(R.string.floating_bubble_perm_title)
+                            .setMessage(R.string.floating_bubble_perm_msg)
+                            .setPositiveButton(R.string.gopro_grant, (d, w) -> {
+                                Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:" + getContext().getPackageName()));
+                                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                try { startActivity(i); }
+                                catch (Exception e) { Log.e(LOGTAG, "manage overlay permission intent failed", e); }
+                            })
+                            .setNegativeButton(R.string.cancel, (d, w) -> d.dismiss())
+                            .show();
+                    // We let the user toggle it on optimistically; bubble will appear once the
+                    // permission is granted and the app is backgrounded.
+                }
+                return true;
+            });
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Preference batteryOpt = findPreference("battery_optimization");
+        if (batteryOpt != null) updateBatteryOptimizationSummary(batteryOpt);
+        Preference presets = findPreference("server_presets");
+        if (presets != null) updatePresetsSummary(presets);   // applying a preset changes the address
+    }
+
+    private void updatePresetsSummary(@NonNull Preference preference) {
+        // Use a locally-fetched SharedPreferences: this can run from onCreatePreferences (via
+        // super.onCreate) BEFORE the `pref` field is assigned, so don't rely on the field.
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(preference.getContext());
+        int n = ServerPresets.load(sp).size();
+        String active = sp.getString(Preferences.STREAM_ADDRESS, Preferences.STREAM_ADDRESS_DEFAULT);
+        preference.setSummary(getString(R.string.server_presets_summary)
+                + (n == 0 ? "" : "  (" + n + " saved; current: " + active + ")"));
+    }
+
+    private void updateBatteryOptimizationSummary(@NonNull Preference pref) {
+        Context ctx = getContext();
+        if (ctx == null) return;
+        PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+        boolean granted = pm != null && pm.isIgnoringBatteryOptimizations(ctx.getPackageName());
+        if (granted) {
+            pref.setSummary(getString(R.string.battery_optimization_already_granted));
+        } else {
+            pref.setSummary(getString(R.string.disable_battery_optimization_summary));
+        }
+    }
+
+    @SuppressWarnings("BatteryLife")
+    private void requestIgnoreBatteryOptimizations() {
+        Context ctx = getContext();
+        if (ctx == null) return;
+        PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+        String pkg = ctx.getPackageName();
+        if (pm != null && pm.isIgnoringBatteryOptimizations(pkg)) {
+            showNotification(getString(R.string.battery_optimization_granted_title),
+                    getString(R.string.battery_optimization_already_granted));
+            return;
+        }
+        try {
+            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(Uri.parse("package:" + pkg));
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Failed to open battery optimization request", e);
+            // Fall back to the system battery settings list.
+            try {
+                startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+            } catch (Exception e2) {
+                Log.e(LOGTAG, "Battery optimization settings unavailable", e2);
+            }
+        }
     }
 
     @Override
     public boolean onPreferenceClick(@NonNull Preference preference) {
-        if (preference.getKey().equals(Preferences.STREAM_CERTIFICATE)) {
+        if (preference.getKey().equals("battery_optimization")) {
+            requestIgnoreBatteryOptimizations();
+            return true;
+        } else if (preference.getKey().equals("server_presets")) {
+            startActivity(new Intent(requireContext(), ServerPresetsActivity.class));
+            return true;
+        } else if (preference.getKey().equals(Preferences.STREAM_CERTIFICATE)) {
             pref.edit().putString(Preferences.STREAM_CERTIFICATE, null).apply();
             Intent fileBrowserIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             fileBrowserIntent.setType("*/*");

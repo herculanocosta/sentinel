@@ -26,4 +26,10 @@
             android:key="atak_settings"
             android:title="@string/atak_preferences"
     />
+
+    <PreferenceCategory android:title="@string/about_category" />
+    <Preference
+        android:key="about_sentinel"
+        android:title="@string/about_title"
+        app:summary="@string/about_summary" />
 </PreferenceScreen>

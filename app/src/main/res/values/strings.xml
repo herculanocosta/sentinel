@@ -1,5 +1,6 @@
 <resources>
-    <string name="app_name">OpenTAK ICU</string>
+    <string name="app_name">SENTINEL</string>
+    <string name="app_name_full">SENTINEL · Tactical Live Cast</string>
     <string name="version">Version: %1$s</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
@@ -40,6 +41,74 @@
     <string name="microphone">Microphone</string>
     <string name="filters">Filters</string>
     <string name="clear">Clear</string>
+    <string name="force_landscape">Force Landscape</string>
+    <string name="select_source_subtitle">Select broadcast source</string>
+    <string name="select_source_hint">Source can\'t be changed while broadcasting — pick it here first. Back returns to this screen when idle.</string>
+    <string name="source_phone_camera">Phone Camera</string>
+    <string name="source_usb_camera">USB Camera</string>
+    <string name="source_screen">Screen</string>
+    <string name="source_gopro">GoPro</string>
+    <string name="auto_reconnect_title">Auto-reconnect</string>
+    <string name="auto_reconnect_summary">If the broadcast drops (network blip), automatically retry the connection for ~75s instead of stopping. Recommended for field use.</string>
+    <string name="stream_orientation_title">Stream orientation</string>
+    <string name="orientation_landscape">Landscape</string>
+    <string name="orientation_portrait">Portrait</string>
+    <string name="import_tak_zip_title">Import TAK Data Package</string>
+    <string name="import_tak_zip_summary">Pick a TAK .zip data package to auto-fill server address, port, certificates and passwords.</string>
+    <string name="import_tak_zip_success_title">Import successful</string>
+    <string name="import_tak_zip_failed_title">Import failed</string>
+    <string name="import_tak_zip_no_pref">No .pref file found inside the zip.</string>
+    <string name="import_tak_zip_no_connect">The .pref file is missing a connectString.</string>
+    <string name="background_category_title">Background &amp; battery</string>
+    <string name="disable_battery_optimization_title">Allow background streaming</string>
+    <string name="disable_battery_optimization_summary">Exclude SENTINEL from Android battery optimization so streaming and recording keep running with the screen off or another app on top.</string>
+    <string name="battery_optimization_already_granted">Background streaming is already allowed — Android won\'t kill the app while it is streaming or recording.</string>
+    <string name="battery_optimization_granted_title">Background streaming allowed</string>
+    <string name="share_target_label">Import to SENTINEL</string>
+    <string name="testing_connection">Testing connection…</string>
+    <string name="connection_test_ok">Connection OK</string>
+    <string name="connection_test_failed">Connection failed</string>
+    <string name="test_connection_button">Test connection</string>
+    <string name="state_idle">Idle</string>
+    <string name="state_connecting">Connecting…</string>
+    <string name="state_streaming">LIVE</string>
+    <string name="state_recording">REC</string>
+    <string name="state_error">Error</string>
+    <string name="confirm_stop_title">Stop stream?</string>
+    <string name="confirm_stop_message">A stream is in progress. Stop now?</string>
+    <string name="fps_label">FPS</string>
+    <string name="fps_drop_label">Drop</string>
+    <string name="gopro">GoPro</string>
+    <string name="gopro_connecting_title">Connecting to GoPro</string>
+    <string name="gopro_connect_failed_title">GoPro connect failed</string>
+    <string name="gopro_already_paired">Reconnecting to paired GoPro…</string>
+    <string name="gopro_need_bluetooth">GoPro source needs Bluetooth permission to wake the camera.</string>
+    <string name="gopro_bluetooth_off">Turn Bluetooth on so we can wake the GoPro Wi-Fi.</string>
+    <string name="gopro_grant">Grant</string>
+    <string name="floating_bubble_title">Floating control bubble</string>
+    <string name="floating_bubble_summary">When SENTINEL is in the background, show a draggable bubble over other apps. Tap to start/stop streaming; the dot reflects connection status.</string>
+    <string name="floating_bubble_perm_title">Allow drawing over other apps</string>
+    <string name="floating_bubble_perm_msg">SENTINEL needs the \"Display over other apps\" permission to show the floating control bubble. Tap \"Grant\" to open the system page where you can enable it.</string>
+
+    <string name="lock_screen_menu">Lock screen (no-touch)</string>
+    <string name="touch_lock_active_title">TOUCH LOCK</string>
+    <string name="touch_lock_unlock_hint">Long-press to unlock</string>
+    <string name="touch_lock_just_locked">Locked. Long-press the centre badge to unlock.</string>
+
+    <string name="record_options_title">Record options</string>
+    <string name="record_mode_label">Mode</string>
+    <string name="record_resolution_label">Resolution</string>
+    <string name="record_bitrate_label">Bitrate (Mbps)</string>
+    <string name="record_mode_stream">Stream only</string>
+    <string name="record_mode_record">Record only</string>
+    <string name="record_mode_both">Stream + Record</string>
+    <string name="record_apply">Apply</string>
+
+    <string name="about_category">About</string>
+    <string name="about_title">About SENTINEL</string>
+    <string name="about_summary">Version, credits and acknowledgements</string>
+    <string name="about_credits_title">SENTINEL · Tactical Live Cast</string>
+    <string name="about_credits_body"><![CDATA[Camera, screen and GoPro live streaming to TAK Server / RTSP / RTMP / SRT — designed for tactical use.<br/><br/><b>Acknowledgements</b><br/>· Forked from OpenTAK_ICU by Brian Adams (brian7704)<br/>· Streaming engine: pedroSG94 RootEncoder<br/>· Open GoPro BLE / HTTP spec by GoPro Inc.<br/>· ATAK by US DoD / Civil release]]></string>
     <!--drawer-->
     <string name="drawer_title">Options</string>
     <string name="protocols">Protocol</string>
@@ -70,7 +139,7 @@
     <string name="screen">Screen</string>
     <string name="internal">Internal</string>
     <string name="hint_protocol">protocol://yourendpoint</string>
-    <string name="welcome_to_open_tak_icu">Welcome to OpenTAK ICU</string>
+    <string name="welcome_to_open_tak_icu">Welcome to SENTINEL</string>
     <string name="app_intro_welcome_msg">Let\'s get you set up</string>
     <string name="permissions">Permissions</string>
     <string name="permissions_slide_description">Please grant the necessary permissions</string>
@@ -223,4 +292,47 @@
     <string name="label_user">User: %1$s\n</string>
     <string name="label_pass">Password: %1$s\n</string>
     <string name="settings_updated_success">Settings Updated Successfully</string>
+
+    <!-- Server presets -->
+    <string name="server_presets_title">Server presets</string>
+    <string name="server_presets_summary">Save and switch between streaming destinations</string>
+    <string name="observer_url_title">Observer / viewer URL</string>
+    <string name="observer_url_summary">Playback link sent to ATAK so peers can watch. Blank = auto. e.g. rtsp://host:8554/name?tcp · rtmp://host:1935/name · srt://host:port?streamid=read:name</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="presets_add">Add</string>
+    <string name="preset_active">ACTIVE</string>
+    <string name="preset_applied">Applied “%1$s”</string>
+    <string name="presets_empty_title">No presets yet</string>
+    <string name="presets_empty_body">Tap + to save a streaming destination you can switch to in one tap.</string>
+    <string name="preset_add_title">Add server preset</string>
+    <string name="preset_edit_title">Edit server preset</string>
+    <string name="preset_delete_title">Delete “%1$s”?</string>
+    <string name="preset_delete_body">This preset will be removed. Your current stream settings are unaffected.</string>
+    <string name="preset_suggest_url">Suggest viewer URL</string>
+    <string name="preset_rebuild_url">Rebuild from fields</string>
+    <string name="preset_section_publish">Publish — where SENTINEL sends</string>
+    <string name="preset_section_viewer">Viewer — what ATAK opens</string>
+    <string name="preset_section_viewer_hint">The viewer protocol can differ from publish — MediaMTX re-serves the same stream on RTSP/RTMP/SRT.</string>
+    <string name="preset_field_viewer_protocol">Viewer protocol</string>
+    <string name="preset_srt_path_helper">SRT pushes as streamid=publish:&lt;name&gt;; viewers use read:&lt;name&gt;</string>
+    <string name="preset_field_name">Name</string>
+    <string name="preset_field_protocol">Protocol</string>
+    <string name="preset_field_address">Address (host or IP)</string>
+    <string name="preset_field_port">Port</string>
+    <string name="preset_field_path">Path / stream name</string>
+    <string name="preset_field_observer">Observer / viewer URL (blank = auto)</string>
+    <string name="preset_field_observer_helper">Sent to ATAK so peers can watch. e.g. rtsp://host:8554/name?tcp</string>
+    <string name="preset_field_username">Username (optional)</string>
+    <string name="preset_field_password">Password (optional)</string>
+    <string name="preset_field_tcp">Use TCP (RTSP)</string>
+
+    <!-- Self-marker video advertisement -->
+    <string name="send_cots_summary">Put a video marker on the TAK map so peers can tap it to watch your live feed</string>
+    <string name="atak_callsign">Video marker name</string>
+    <string name="atak_callsign_summary">The name shown on the SENTINEL video marker in ATAK</string>
+    <string name="atak_self_uid">Self marker UID</string>
+    <string name="atak_self_uid_summary">Your ATAK UID (Settings → Device Preferences → \"Your UID\") so the feed attaches to your own marker. Leave blank to advertise on SENTINEL\'s own marker.</string>
+    <string name="atak_marker_type">Marker CoT type</string>
+    <string name="atak_marker_type_summary">Advanced. Self/unit type so the feed rides a marker instead of a separate icon. Default a-f-G-U-C.</string>
 </resources>

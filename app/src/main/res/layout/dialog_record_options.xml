@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Quick record/stream-options sheet shown when the user long-presses the big
+  record button. Lets them pick Mode (stream / record / both), Resolution and
+  Bitrate without having to dig through Settings.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/record_mode_label"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp" />
+
+        <RadioGroup
+            android:id="@+id/opt_mode_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <RadioButton
+                android:id="@+id/opt_mode_stream"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/record_mode_stream" />
+            <RadioButton
+                android:id="@+id/opt_mode_record"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/record_mode_record" />
+            <RadioButton
+                android:id="@+id/opt_mode_both"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/record_mode_both" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/record_resolution_label"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:layout_marginTop="14dp" />
+
+        <RadioGroup
+            android:id="@+id/opt_res_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <RadioButton
+                android:id="@+id/opt_res_1080"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1920 x 1080" />
+            <RadioButton
+                android:id="@+id/opt_res_720"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1280 x 720" />
+            <RadioButton
+                android:id="@+id/opt_res_480"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="854 x 480" />
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/record_bitrate_label"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:layout_marginTop="14dp" />
+
+        <RadioGroup
+            android:id="@+id/opt_br_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/opt_br_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1" />
+            <RadioButton
+                android:id="@+id/opt_br_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2"
+                android:layout_marginStart="12dp" />
+            <RadioButton
+                android:id="@+id/opt_br_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="4"
+                android:layout_marginStart="12dp" />
+            <RadioButton
+                android:id="@+id/opt_br_8"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="8"
+                android:layout_marginStart="12dp" />
+        </RadioGroup>
+    </LinearLayout>
+</ScrollView>

@@ -3,22 +3,34 @@ package io.opentakserver.opentakicu.preferences;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUtils;
 import android.util.Log;
+import android.util.Xml;
 
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -39,6 +51,7 @@ public class ATAKPreferencesFragment extends PreferenceFragmentCompat implements
     private final static String LOGTAG = "ATAKPrefsFragment";
     private ActivityResultLauncher trustStoreFileBrowserLauncher;
     private ActivityResultLauncher clientCertFileBrowserLauncher;
+    private ActivityResultLauncher takZipImportLauncher;
     private SharedPreferences prefs;
 
     @Override
@@ -77,6 +90,16 @@ public class ATAKPreferencesFragment extends PreferenceFragmentCompat implements
             }
         );
 
+        takZipImportLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) importTakDataPackage(uri);
+                    }
+                }
+        );
+
         clientCertFileBrowserLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -110,11 +133,57 @@ public class ATAKPreferencesFragment extends PreferenceFragmentCompat implements
     @Override
     public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
         setPreferencesFromResource(R.xml.atak_preferences, rootKey);
+        Preference importPref = findPreference("import_tak_zip");
+        if (importPref != null) importPref.setOnPreferenceClickListener(this);
+
         findPreference("trust_store_certificate").setOnPreferenceClickListener(this);
         findPreference("test_trust_store").setOnPreferenceClickListener(this);
 
         findPreference("client_certificate").setOnPreferenceClickListener(this);
         findPreference("test_client_cert").setOnPreferenceClickListener(this);
+    }
+
+    /**
+     * Delegates to the shared {@link io.opentakserver.opentakicu.TakDataPackageImporter}
+     * (same flow used when the user shares / opens a .zip from a file manager).
+     */
+    private void importTakDataPackage(Uri zipUri) {
+        new Thread(() -> {
+            io.opentakserver.opentakicu.TakDataPackageImporter.Result r =
+                    io.opentakserver.opentakicu.TakDataPackageImporter.importFromUri(getContext(), zipUri);
+            if (getActivity() == null) return;
+            getActivity().runOnUiThread(() -> {
+                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                builder.setTitle(r.success ? R.string.import_tak_zip_success_title : R.string.import_tak_zip_failed_title);
+                builder.setMessage(r.message);
+                builder.setPositiveButton(R.string.ok, (dialog, which) -> dialog.dismiss());
+                if (r.success && r.host != null && r.port > 0) {
+                    builder.setNeutralButton(R.string.test_connection_button,
+                            (dialog, which) -> runConnectionTest(r));
+                }
+                builder.create().show();
+            });
+        }).start();
+    }
+
+    private void runConnectionTest(io.opentakserver.opentakicu.TakDataPackageImporter.Result r) {
+        new Thread(() -> {
+            io.opentakserver.opentakicu.TakDataPackageImporter.ConnectionTestResult ct =
+                    io.opentakserver.opentakicu.TakDataPackageImporter.testConnection(r, 5000);
+            if (getActivity() == null) return;
+            getActivity().runOnUiThread(() -> {
+                String body = (ct.tcpOk ? "TCP: OK\n" : "TCP: FAIL\n")
+                        + (r.ssl ? (ct.tlsOk ? "TLS: OK\n" : "TLS: FAIL\n") : "")
+                        + (ct.details == null ? "" : "\n" + ct.details);
+                new AlertDialog.Builder(getActivity())
+                        .setTitle((ct.tcpOk && (!r.ssl || ct.tlsOk))
+                                ? R.string.connection_test_ok
+                                : R.string.connection_test_failed)
+                        .setMessage(body)
+                        .setPositiveButton(R.string.ok, (dialog, which) -> dialog.dismiss())
+                        .create().show();
+            });
+        }).start();
     }
 
     public static void copy(InputStream in, File dst) throws IOException {
@@ -130,7 +199,19 @@ public class ATAKPreferencesFragment extends PreferenceFragmentCompat implements
 
     @Override
     public boolean onPreferenceClick(@NonNull Preference preference) {
-        if (preference.getKey().equals("trust_store_certificate")) {
+        if (preference.getKey().equals("import_tak_zip")) {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            // Most pickers honor EXTRA_MIME_TYPES — list both zip MIMEs.
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {
+                    "application/zip",
+                    "application/octet-stream",
+                    "application/x-zip-compressed"
+            });
+            takZipImportLauncher.launch(intent);
+            return true;
+        } else if (preference.getKey().equals("trust_store_certificate")) {
             //prefs.edit().putString("trust_store_certificate", null).apply();
             Intent fileBrowserIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             fileBrowserIntent.setType("*/*");

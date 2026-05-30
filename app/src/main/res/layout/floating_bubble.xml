@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SENTINEL floating bubble. Two states:
+    * Idle  — only the round 56dp lens icon is visible (stats container is GONE).
+    * Live  — a wider pill with the lens icon on the left and a small stats column
+              on the right showing bitrate / upload speed / FPS / congestion.
+  The {@link io.opentakserver.opentakicu.overlay.FloatingBubbleManager#updateStats(...)}
+  method swaps between the two by toggling the visibility of the stats container.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <FrameLayout
+        android:id="@+id/bubble_root"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_bubble">
+
+        <ImageView
+            android:id="@+id/bubble_icon"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_launcher_foreground"
+            android:scaleType="centerInside" />
+
+        <View
+            android:id="@+id/bubble_state_dot"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_status_dot" />
+    </FrameLayout>
+
+    <!-- Stats pill, only shown while a stream is active. -->
+    <LinearLayout
+        android:id="@+id/bubble_stats"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="4dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:background="@drawable/bg_chip_dark"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/bubble_bitrate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
+
+        <TextView
+            android:id="@+id/bubble_fps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFAAAAAA"
+            android:textSize="10sp"
+            android:fontFamily="monospace" />
+    </LinearLayout>
+</LinearLayout>

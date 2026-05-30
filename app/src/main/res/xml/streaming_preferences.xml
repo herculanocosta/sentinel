@@ -1,7 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory android:title="@string/background_category_title">
+        <Preference
+            android:key="battery_optimization"
+            android:title="@string/disable_battery_optimization_title"
+            app:summary="@string/disable_battery_optimization_summary" />
+        <SwitchPreference
+            android:key="auto_reconnect"
+            android:defaultValue="true"
+            android:title="@string/auto_reconnect_title"
+            app:summary="@string/auto_reconnect_summary" />
+    </PreferenceCategory>
     <PreferenceCategory android:title="Server Settings">
+        <Preference
+            android:key="server_presets"
+            android:title="@string/server_presets_title"
+            app:summary="@string/server_presets_summary" />
         <SwitchPreference
             android:defaultValue="true"
             android:key="stream_video"
@@ -33,6 +48,13 @@
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:title="@string/stream_path"
+            android:dependency="stream_video" />
+        <EditTextPreference
+            android:key="observer_url"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/observer_url_title"
+            app:summary="@string/observer_url_summary"
             android:dependency="stream_video" />
         <EditTextPreference
             android:key="username"

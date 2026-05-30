@@ -43,8 +43,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.slider.Slider;
-import com.google.firebase.BuildConfig;
-import com.google.firebase.analytics.FirebaseAnalytics;
 import com.pedro.common.ConnectChecker;
 import com.pedro.encoder.input.sources.video.Camera2Source;
 import com.pedro.encoder.input.video.CameraHelper;
@@ -74,6 +72,29 @@ public class Camera2Fragment extends Fragment
     private TextView tvStreamPath;
     private TextView tvRecording;
     private TextView tvTakServer;
+    private TextView tvFps;
+    private TextView tvFpsDrop;
+    private TextView tvStateBanner;
+    private TextView tvStateTimer;
+    private View rightControls;
+    private View statsChip;
+    private View stateDot;
+    private View takDot;
+    private View gpsDot;
+    private View recDot;
+    private View touchLockOverlay;
+    private View touchLockBadge;
+    private long streamStartedAtMs = 0;
+    private final Runnable elapsedTimer = new Runnable() {
+        @Override
+        public void run() {
+            if (tvStateTimer != null && streamStartedAtMs > 0) {
+                long sec = (System.currentTimeMillis() - streamStartedAtMs) / 1000;
+                tvStateTimer.setText(String.format(java.util.Locale.US, "%02d:%02d", sec / 60, sec % 60));
+                handler.postDelayed(this, 500);
+            }
+        }
+    };
     private FloatingActionButton pictureButton;
     private FloatingActionButton flashlight;
     private View whiteOverlay;
@@ -83,10 +104,23 @@ public class Camera2Fragment extends Fragment
     private Slider zoomSlider;
 
     private boolean service_bound = false;
+    /** One-shot: set when arriving from the source page with GoPro picked; triggers auto-connect. */
+    private boolean pendingGoProAutoConnect = false;
+    /** Throttle for battery/thermal warning toasts (every 30s max). */
+    private long lastWarnToastMs = 0;
     private boolean awaitingScreenCapturePermission = false;
     private Camera2Service camera_service;
     private long last_fix_time = 0;
-    private FirebaseAnalytics mFirebaseAnalytics;
+
+    /** Stream lifecycle state for the top-of-screen banner. */
+    private enum StreamState { IDLE, CONNECTING, STREAMING, ERROR }
+    private StreamState currentState = StreamState.IDLE;
+    /** Drop counter: incremented every time the bitrate adapter reports congestion. */
+    private int droppedFrames = 0;
+    /** Last time we received a bitrate update — for "stale stream" detection. */
+    private long lastBitrateUpdateMs = 0;
+    /** Auto-hide controls timer. */
+    private static final long CONTROLS_HIDE_DELAY_MS = 3000;
 
     private ActivityResultLauncher<Intent> screenCaptureLauncher;
 
@@ -103,6 +137,36 @@ public class Camera2Fragment extends Fragment
 
         getViews();
 
+        // The source-selection page passes this when GoPro was picked → auto-start the BLE→Wi-Fi
+        // connect flow once the service is bound (see maybeAutoConnectGoPro()).
+        Bundle navArgs = getArguments();
+        if (navArgs != null) {
+            pendingGoProAutoConnect = navArgs.getBoolean(SourceSelectionFragment.ARG_AUTO_CONNECT_GOPRO, false);
+        }
+
+        // Back button: idle → return to the source-selection page; live → confirm stop first.
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(),
+                new androidx.activity.OnBackPressedCallback(true) {
+                    @Override public void handleOnBackPressed() {
+                        boolean active = false;
+                        try {
+                            active = service_bound && camera_service != null
+                                    && (camera_service.getStream().isStreaming()
+                                        || camera_service.getStream().isRecording());
+                        } catch (Throwable ignored) {}
+                        if (active) {
+                            new androidx.appcompat.app.AlertDialog.Builder(activity)
+                                    .setTitle(R.string.confirm_stop_title)
+                                    .setMessage(R.string.confirm_stop_message)
+                                    .setPositiveButton(android.R.string.ok, (d, w) -> { doStopStream(); popToSourcePage(); })
+                                    .setNegativeButton(android.R.string.cancel, (d, w) -> d.dismiss())
+                                    .show();
+                        } else {
+                            popToSourcePage();
+                        }
+                    }
+                });
+
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(Camera2Service.EXIT_APP);
         intentFilter.addAction(Camera2Service.START_STREAM);
@@ -114,6 +178,11 @@ public class Camera2Fragment extends Fragment
         intentFilter.addAction(Camera2Service.LOCATION_CHANGE);
         intentFilter.addAction(TcpClient.TAK_SERVER_CONNECTED);
         intentFilter.addAction(TcpClient.TAK_SERVER_DISCONNECTED);
+        intentFilter.addAction(Camera2Service.LOCK_SCREEN);
+        intentFilter.addAction(Camera2Service.REQUEST_SCREEN_CAPTURE);
+        intentFilter.addAction(Camera2Service.SHOW_SOURCE_PICKER);
+        intentFilter.addAction(Camera2Service.STREAM_CONNECTED);
+        intentFilter.addAction(Camera2Service.STREAM_STATS);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             activity.registerReceiver(receiver, intentFilter, Context.RECEIVER_EXPORTED);
@@ -133,6 +202,7 @@ public class Camera2Fragment extends Fragment
             if (cameraService != null) {
                 popupMenuHandler = new PopupMenuHandler(cameraService, getActivity());
                 setZoomRange();
+                maybeAutoConnectGoPro();
             } else {
                 Log.e(LOGTAG, "observer service null");
             }
@@ -158,6 +228,15 @@ public class Camera2Fragment extends Fragment
     final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            try { onReceiveSafe(context, intent); }
+            catch (Throwable t) {
+                // BroadcastReceiver crashes take the whole process with them — swallow so the
+                // app stays alive even if a view reference is stale or an action arrives
+                // before the fragment is fully ready.
+                Log.e(LOGTAG, "fragment receiver crashed for " + intent, t);
+            }
+        }
+        private void onReceiveSafe(Context context, Intent intent) {
             String action = intent.getAction();
             if (action != null && action.equals(Camera2Service.EXIT_APP)) {
                 Log.d(LOGTAG, "Exiting app");
@@ -169,9 +248,11 @@ public class Camera2Fragment extends Fragment
                     lockScreenOrientation();
                 }
                 if (pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT)) {
-                    tvRecording.setText(R.string.yes);
-                    tvRecording.setTextColor(Color.GREEN);
+                    tvRecording.setText("on");
+                    tintDot(recDot, COLOR_OK);
                 }
+                applyStreamState(StreamState.CONNECTING);
+                droppedFrames = 0;
             } else if (action != null && (action.equals(Camera2Service.STOP_STREAM) || action.equals(Camera2Service.AUTH_ERROR) || action.equals(Camera2Service.CONNECTION_FAILED))) {
                 bStartStop.setImageResource(R.drawable.ic_record);
                 if (service_bound)
@@ -180,8 +261,14 @@ public class Camera2Fragment extends Fragment
                 service_bound = false;
                 unlockScreenOrientation();
                 if (pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT)) {
-                    tvRecording.setText(R.string.no);
-                    tvRecording.setTextColor(Color.RED);
+                    tvRecording.setText("off");
+                    tintDot(recDot, COLOR_ERR);
+                }
+
+                if (action.equals(Camera2Service.AUTH_ERROR) || action.equals(Camera2Service.CONNECTION_FAILED)) {
+                    applyStreamState(StreamState.ERROR);
+                } else {
+                    applyStreamState(StreamState.IDLE);
                 }
 
                 setStatusState();
@@ -208,16 +295,58 @@ public class Camera2Fragment extends Fragment
             } else if (action != null && action.equals(Camera2Service.NEW_BITRATE)) {
                 long bitrate = intent.getLongExtra(Camera2Service.NEW_BITRATE, 0) / 1000;
                 tvBitrate.setText(bitrate + "kb/s");
+                // First bitrate update after CONNECTING means we are actually streaming.
+                if (currentState == StreamState.CONNECTING) {
+                    applyStreamState(StreamState.STREAMING);
+                }
+                onBitrateTick(bitrate);
             } else if (action != null && action.equals(Camera2Service.LOCATION_CHANGE)) {
                 last_fix_time = System.currentTimeMillis();
-                tvLocationFix.setText(R.string.yes);
-                tvLocationFix.setTextColor(Color.GREEN);
+                tvLocationFix.setText("ok");
+                tintDot(gpsDot, COLOR_OK);
             } else if (action != null && action.equals(TcpClient.TAK_SERVER_CONNECTED)) {
-                tvTakServer.setText(R.string.connected);
-                tvTakServer.setTextColor(Color.GREEN);
+                tvTakServer.setText("ok");
+                tintDot(takDot, COLOR_OK);
             } else if (action != null && action.equals(TcpClient.TAK_SERVER_DISCONNECTED)) {
-                tvTakServer.setText(R.string.disconnected);
-                tvTakServer.setTextColor(Color.RED);
+                tvTakServer.setText("lost");
+                tintDot(takDot, COLOR_ERR);
+            } else if (action != null && action.equals(Camera2Service.STREAM_CONNECTED)) {
+                applyStreamState(StreamState.STREAMING);
+            } else if (action != null && action.equals(Camera2Service.STREAM_STATS)) {
+                long bitrate = intent.getLongExtra(Camera2Service.KEY_BITRATE_KBPS, 0);
+                long fps = intent.getLongExtra(Camera2Service.KEY_FPS, 0);
+                long upload = intent.getLongExtra(Camera2Service.KEY_UPLOAD_KBPS, 0);
+                boolean congested = intent.getBooleanExtra(Camera2Service.KEY_CONGESTED, false);
+                if (tvBitrate != null) tvBitrate.setText(bitrate + "kb/s");
+                if (tvFps != null) {
+                    tvFps.setText(fps > 0 ? String.valueOf(fps) : "—");
+                    tvFps.setTextColor(congested ? COLOR_WARN : (fps > 0 ? COLOR_OK : COLOR_DIM));
+                }
+                String warning = intent.getStringExtra(Camera2Service.KEY_WARNING);
+                boolean hasWarning = warning != null && !warning.isEmpty();
+                if (congested || hasWarning) {
+                    // Tint the state dot amber to flag poor connection / device warning without
+                    // flipping LIVE → ERROR.
+                    tintDot(stateDot, COLOR_WARN);
+                } else if (currentState == StreamState.STREAMING) {
+                    tintDot(stateDot, COLOR_ERR);   // back to LIVE red
+                }
+                // Surface battery/thermal warnings as a throttled toast (logcat has the rest).
+                if (hasWarning) {
+                    long now = System.currentTimeMillis();
+                    if (now - lastWarnToastMs > 30000) {
+                        lastWarnToastMs = now;
+                        Toast.makeText(activity, warning, Toast.LENGTH_LONG).show();
+                    }
+                }
+            } else if (action != null && action.equals(Camera2Service.LOCK_SCREEN)) {
+                lockTouches();
+            } else if (action != null && action.equals(Camera2Service.REQUEST_SCREEN_CAPTURE)) {
+                requestScreenCapture();
+            } else if (action != null && action.equals(Camera2Service.SHOW_SOURCE_PICKER)) {
+                if (popupMenu != null) {
+                    popupMenu.show();
+                }
             }
         }
     };
@@ -279,8 +408,8 @@ public class Camera2Fragment extends Fragment
                         bStartStop.setImageResource(R.drawable.stop);
                         lockScreenOrientation();
                         if (pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT)) {
-                            tvRecording.setText(R.string.yes);
-                            tvRecording.setTextColor(Color.GREEN);
+                            tvRecording.setText("on");
+                            tintDot(recDot, COLOR_OK);
                         }
                         if (screenCaptureOverlay != null) {
                             screenCaptureOverlay.setVisibility(View.VISIBLE);
@@ -296,12 +425,9 @@ public class Camera2Fragment extends Fragment
 
         activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        if (!BuildConfig.DEBUG) {
-            mFirebaseAnalytics = FirebaseAnalytics.getInstance(activity);
-            Bundle bundle = new Bundle();
-            bundle.putString("Activity", "MainActivity");
-            mFirebaseAnalytics.logEvent("Start", bundle);
-        }
+        // Note: Firebase Analytics + Crashlytics were intentionally removed for the SENTINEL
+        // production build so no telemetry leaks to upstream. If you want crash reporting
+        // you can wire up your own provider (e.g. self-hosted Sentry) here.
 
         String uid = pref.getString(Preferences.UID, null);
         if (uid == null)
@@ -333,31 +459,23 @@ public class Camera2Fragment extends Fragment
     }
 
     private void setStatusState() {
-        if (tvLocationFix == null)
-            return;
+        if (tvLocationFix == null) return;
 
-        if (pref.getBoolean(Preferences.ATAK_SEND_COT, Preferences.ATAK_SEND_COT_DEFAULT)) {
-            tvLocationFix.setText(R.string.not_streaming);
-            tvLocationFix.setTextColor(Color.YELLOW);
-            tvTakServer.setText(R.string.not_streaming);
-            tvTakServer.setTextColor(Color.YELLOW);
-        } else {
-            tvLocationFix.setText(R.string.disabled);
-            tvLocationFix.setTextColor(Color.YELLOW);
-            tvTakServer.setText(R.string.disabled);
-            tvTakServer.setTextColor(Color.YELLOW);
-        }
+        boolean atakEnabled = pref.getBoolean(Preferences.ATAK_SEND_COT, Preferences.ATAK_SEND_COT_DEFAULT);
+        boolean recordEnabled = pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT);
+
+        // TAK chip: gray dot + "off" / dim text when disabled; yellow + "wait" when enabled and idle.
+        tvTakServer.setText(atakEnabled ? "wait" : "off");
+        tintDot(takDot, atakEnabled ? COLOR_WARN : COLOR_DIM);
+
+        tvLocationFix.setText(atakEnabled ? "wait" : "off");
+        tintDot(gpsDot, atakEnabled ? COLOR_WARN : COLOR_DIM);
 
         tvStreamPath.setText(pref.getString(Preferences.STREAM_PATH, Preferences.STREAM_PATH_DEFAULT));
         tvBitrate.setText(pref.getString(Preferences.VIDEO_BITRATE, Preferences.VIDEO_BITRATE_DEFAULT) + "kb/s");
 
-        if (pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT)) {
-            tvRecording.setText(R.string.not_streaming);
-            tvRecording.setTextColor(Color.YELLOW);
-        } else {
-            tvRecording.setText(R.string.disabled);
-            tvRecording.setTextColor(Color.YELLOW);
-        }
+        tvRecording.setText(recordEnabled ? "wait" : "off");
+        tintDot(recDot, recordEnabled ? COLOR_WARN : COLOR_DIM);
     }
 
     @Override
@@ -387,14 +505,27 @@ public class Camera2Fragment extends Fragment
             Log.d(LOGTAG, "onPause while awaiting screen-capture permission; keeping preview alive");
             return;
         }
-        if (camera_service != null)
-            camera_service.stopPreview();
+        // Hand off background-state to the service so it can decide whether to pop a floating bubble.
+        if (camera_service != null) camera_service.setAppForeground(false);
+        // Don't tear down the preview/encoder pipeline if a stream or recording is in progress —
+        // the foreground service is supposed to keep producing frames in the background.
+        if (camera_service != null) {
+            boolean active = camera_service.getStream().isStreaming() || camera_service.getStream().isRecording();
+            if (active) {
+                Log.d(LOGTAG, "onPause while streaming/recording; keeping preview alive");
+            } else {
+                camera_service.stopPreview();
+            }
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
         Log.d(LOGTAG, "onResume");
+        applyOrientationPreference();
+        showControls();
+        if (camera_service != null) camera_service.setAppForeground(true);
         String videoSource = pref.getString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_DEFAULT);
         boolean isScreenStreaming = Preferences.VIDEO_SOURCE_SCREEN.equals(videoSource)
                 && camera_service != null && camera_service.hasScreenCapture()
@@ -451,6 +582,25 @@ public class Camera2Fragment extends Fragment
         tvStreamPath = activity.findViewById(R.id.stream_path_name);
         tvRecording = activity.findViewById(R.id.recording_status);
         tvTakServer = activity.findViewById(R.id.atak_connection_status);
+        tvFps = activity.findViewById(R.id.fps_value);
+        tvFpsDrop = activity.findViewById(R.id.fps_drop_value);
+        tvStateBanner = activity.findViewById(R.id.state_banner);
+        tvStateTimer = activity.findViewById(R.id.state_timer);
+        rightControls = activity.findViewById(R.id.right_controls);
+        statsChip = activity.findViewById(R.id.stats_chip);
+        stateDot = activity.findViewById(R.id.state_dot);
+        takDot = activity.findViewById(R.id.tak_dot);
+        gpsDot = activity.findViewById(R.id.gps_dot);
+        recDot = activity.findViewById(R.id.rec_dot);
+        touchLockOverlay = activity.findViewById(R.id.touch_lock_overlay);
+        touchLockBadge = activity.findViewById(R.id.touch_lock_badge);
+        if (touchLockBadge != null) {
+            touchLockBadge.setOnLongClickListener(v -> { unlockTouches(); return true; });
+        }
+        if (bStartStop != null) {
+            bStartStop.setOnLongClickListener(v -> { showRecordOptions(); return true; });
+        }
+        applyStreamState(StreamState.IDLE);
 
         videoSourceButton = activity.findViewById(R.id.videoSource);
         videoSourceButton.setOnClickListener(this);
@@ -471,6 +621,11 @@ public class Camera2Fragment extends Fragment
 
         flashlight = activity.findViewById(R.id.flashlight);
         flashlight.setOnClickListener(this);
+
+        FloatingActionButton rotateButton = activity.findViewById(R.id.orientation_rotate);
+        if (rotateButton != null) rotateButton.setOnClickListener(this);
+
+        applyWindowInsets();
 
         FloatingActionButton settingsButton = activity.findViewById(R.id.settingsButton);
         settingsButton.setOnClickListener(this);
@@ -500,10 +655,10 @@ public class Camera2Fragment extends Fragment
             }
             service_bound = true;
             bStartStop.setImageResource(R.drawable.stop);
-            tvLocationFix.setText(R.string.no);
-            tvLocationFix.setTextColor(Color.RED);
-            tvTakServer.setText(R.string.no);
-            tvTakServer.setTextColor(Color.RED);
+            tvLocationFix.setText("no");
+            tintDot(gpsDot, COLOR_ERR);
+            tvTakServer.setText("no");
+            tintDot(takDot, COLOR_ERR);
             camera_service.startStream();
             if (Preferences.VIDEO_SOURCE_SCREEN.equals(videoSource) && camera_service.hasScreenCapture()) {
                 setPreviewSurfaceSecure(true);
@@ -525,27 +680,232 @@ public class Camera2Fragment extends Fragment
     };
 
     private void lockScreenOrientation() {
-        int orientation;
-        switch (CameraHelper.getCameraOrientation(activity)) {
-            case 90:
-                orientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-                break;
-            case 180:
-                orientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
-                break;
-            case 270:
-                orientation =ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
-                break;
-            default:
-                orientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-        }
-        Log.d(LOGTAG, "lockScreenOrientation " + orientation);
+        // Honor the orientation the user picked in the pre-stream dialog. We pin the activity
+        // to that orientation (SENSOR_* so it can still flip 180°) for the duration of the
+        // stream, so the OUTPUT stays in the chosen orientation regardless of how the operator
+        // tilts the phone. The encoder rotation is derived from FORCE_LANDSCAPE in the service
+        // (landscape → rotation 0; portrait → CameraHelper.getCameraOrientation of the locked
+        // portrait activity), which the dialog keeps in sync.
+        String chosen = pref.getString(Preferences.STREAM_ORIENTATION, Preferences.STREAM_ORIENTATION_DEFAULT);
+        int orientation = Preferences.STREAM_ORIENTATION_PORTRAIT.equals(chosen)
+                ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                : ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+        Log.d(LOGTAG, "lockScreenOrientation " + chosen + " -> " + orientation);
         activity.setRequestedOrientation(orientation);
     }
 
     private void unlockScreenOrientation() {
-        Log.d(LOGTAG, "unlockScreenOrientation");
-        activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        // Returning to idle ⇒ keep the orientation the operator picked with the rotate button.
+        Log.d(LOGTAG, "unlockScreenOrientation -> chosen");
+        if (activity != null) activity.setRequestedOrientation(streamOrientationToActivity());
+    }
+
+    /** Pop back to the source-selection landing page (or finish if it's not on the back stack). */
+    private void popToSourcePage() {
+        try {
+            if (!getParentFragmentManager().popBackStackImmediate()) {
+                activity.finish();
+            }
+        } catch (Exception e) {
+            activity.finish();
+        }
+    }
+
+    /**
+     * If we arrived from the source page with GoPro selected, kick off the existing BLE→Wi-Fi
+     * connect flow once the service is ready. One-shot: clears the flag so it doesn't re-fire on
+     * later service-observer ticks. On failure the user simply backs out to the source page and
+     * picks GoPro again (which re-navigates with the flag set).
+     */
+    private void maybeAutoConnectGoPro() {
+        if (!pendingGoProAutoConnect || camera_service == null) return;
+        pendingGoProAutoConnect = false;
+        if (camera_service.getGoProNetwork() != null) return;   // already connected this session
+        // CRITICAL ORDER: connect FIRST, then flip VIDEO_SOURCE to gopro in onSuccess. The GoPro
+        // network/keep-alive client only exists after a successful connect; if we switched the
+        // source first (as the source page used to), the streaming screen would build a GoProSource
+        // with a null client that never tells the camera to push — the "GoPro fails" bug. Until
+        // then the screen just shows the normal camera preview.
+        io.opentakserver.opentakicu.gopro.GoProDialogs.startAutoConnect(activity, camera_service,
+                () -> {
+                    pref.edit().putString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_GOPRO).apply();
+                    flashlight.setImageResource(R.drawable.flashlight_off);
+                });
+    }
+
+    /**
+     * The camera/streaming SCREEN sits in landscape at idle — the camera is a 16:9 sensor and a
+     * portrait viewport stretches it. ("Start in portrait" is satisfied by the source-selection
+     * page, which is the portrait screen.) The OUTPUT orientation is still a per-stream choice made
+     * in the pre-stream dialog (see {@link #lockScreenOrientation()}); don't touch orientation while
+     * a stream/recording is live, or resuming the app would yank the locked stream orientation.
+     */
+    private void applyOrientationPreference() {
+        if (activity == null) return;
+        try {
+            if (camera_service != null
+                    && (camera_service.getStream().isStreaming() || camera_service.getStream().isRecording())) {
+                return;
+            }
+        } catch (Throwable ignored) { /* stream not ready yet — safe to set idle orientation */ }
+        int desired = streamOrientationToActivity();
+        if (activity.getRequestedOrientation() != desired) {
+            activity.setRequestedOrientation(desired);
+        }
+    }
+
+    private static final int COLOR_OK = 0xFF00C853;
+    private static final int COLOR_WARN = 0xFFFFC107;
+    private static final int COLOR_ERR = 0xFFE53935;
+    private static final int COLOR_DIM = 0xFF888888;
+
+    /**
+     * Updates the top-of-screen state chip with a dot color + label appropriate to
+     * the current stream lifecycle. Also starts/stops the elapsed-time counter.
+     */
+    private void applyStreamState(StreamState state) {
+        currentState = state;
+        if (tvStateBanner == null) return;
+        int textRes;
+        int dotColor;
+        boolean showTimer = false;
+        switch (state) {
+            case CONNECTING:
+                textRes = R.string.state_connecting;
+                dotColor = COLOR_WARN;
+                break;
+            case STREAMING:
+                textRes = pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT)
+                        ? R.string.state_recording : R.string.state_streaming;
+                dotColor = COLOR_ERR; // red LIVE dot
+                showTimer = true;
+                break;
+            case ERROR:
+                textRes = R.string.state_error;
+                dotColor = COLOR_ERR;
+                break;
+            case IDLE:
+            default:
+                textRes = R.string.state_idle;
+                dotColor = COLOR_DIM;
+                break;
+        }
+        tvStateBanner.setText(textRes);
+        tintDot(stateDot, dotColor);
+
+        // Start / stop the elapsed-time counter.
+        if (showTimer) {
+            if (streamStartedAtMs == 0) streamStartedAtMs = System.currentTimeMillis();
+            if (tvStateTimer != null) tvStateTimer.setVisibility(View.VISIBLE);
+            handler.removeCallbacks(elapsedTimer);
+            handler.post(elapsedTimer);
+        } else {
+            streamStartedAtMs = 0;
+            if (tvStateTimer != null) {
+                tvStateTimer.setVisibility(View.GONE);
+                tvStateTimer.setText("");
+            }
+            handler.removeCallbacks(elapsedTimer);
+        }
+    }
+
+    /**
+     * Push the floating chips and the icon strip away from system bars / cutouts so they
+     * don't sit under the Android nav buttons in landscape. Works regardless of which
+     * side the nav bar lands on (left or right of the screen depending on rotation).
+     */
+    private void applyWindowInsets() {
+        View root = activity.findViewById(R.id.activity_custom);
+        if (root == null) return;
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            androidx.core.graphics.Insets bars = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                            | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
+            int dp10 = (int) (10 * v.getResources().getDisplayMetrics().density);
+            int dp12 = (int) (12 * v.getResources().getDisplayMetrics().density);
+            // Icon strip is on the LEFT — push it inward by the left system inset.
+            setMarginsSafe(activity.findViewById(R.id.right_controls), bars.left + dp10, -1, -1, -1);
+            // Settings gear top-LEFT corner — top + left insets.
+            setMarginsSafe(activity.findViewById(R.id.settingsButton), bars.left + dp12, bars.top + dp10, -1, -1);
+            // Status badges are at bottom-RIGHT.
+            setMarginsSafe(activity.findViewById(R.id.status_badges), -1, -1, bars.right + dp12, bars.bottom + dp12);
+            // State chip is now top-CENTER (constrained start+end) — only the top inset applies.
+            setMarginsSafe(activity.findViewById(R.id.state_chip), -1, bars.top + dp10, -1, -1);
+            // Stats chip top-RIGHT — top + right insets.
+            setMarginsSafe(activity.findViewById(R.id.stats_chip), -1, bars.top + dp10, bars.right + dp12, -1);
+            // Bottom control cluster — keep it inside the bottom inset.
+            setMarginsSafe(activity.findViewById(R.id.bottom_controls), -1, -1, -1, bars.bottom + dp12);
+            return insets;
+        });
+        androidx.core.view.ViewCompat.requestApplyInsets(root);
+    }
+
+    private void setMarginsSafe(View v, int left, int top, int right, int bottom) {
+        if (v == null) return;
+        ViewGroup.LayoutParams raw = v.getLayoutParams();
+        if (!(raw instanceof ViewGroup.MarginLayoutParams)) return;
+        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) raw;
+        if (left >= 0) lp.leftMargin = left;
+        if (top >= 0) lp.topMargin = top;
+        if (right >= 0) lp.rightMargin = right;
+        if (bottom >= 0) lp.bottomMargin = bottom;
+        v.setLayoutParams(lp);
+    }
+
+    /** Tint a small circular shape drawable (the chip dots). */
+    private void tintDot(View dot, int color) {
+        if (dot == null || dot.getBackground() == null) return;
+        dot.getBackground().mutate().setColorFilter(
+                new android.graphics.PorterDuffColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN));
+    }
+
+    /**
+     * Called once per onNewBitrate broadcast (~1 Hz). Updates the FPS readout (configured FPS
+     * during a stable stream, "—" otherwise) and increments the drop counter when the stream
+     * stalls (no new bitrate for > 1.8s).
+     */
+    private void onBitrateTick(long kbps) {
+        long now = System.currentTimeMillis();
+        long sinceLast = now - lastBitrateUpdateMs;
+        lastBitrateUpdateMs = now;
+
+        if (tvFps != null) {
+            if (currentState == StreamState.STREAMING || currentState == StreamState.CONNECTING) {
+                String fps = pref.getString(Preferences.VIDEO_FPS, Preferences.VIDEO_FPS_DEFAULT);
+                tvFps.setText(fps);
+                tvFps.setTextColor(kbps > 0 ? Color.GREEN : Color.YELLOW);
+            } else {
+                tvFps.setText("—");
+                tvFps.setTextColor(Color.YELLOW);
+            }
+        }
+        // If the bitrate update was abnormally late, count it as a "drop" — pedroSG94 normally
+        // ticks ~1 Hz, so > 1800 ms means we lost at least one tick.
+        if (sinceLast > 1800 && sinceLast < 30000) {
+            droppedFrames++;
+        }
+        if (tvFpsDrop != null) {
+            tvFpsDrop.setText(String.valueOf(droppedFrames));
+            tvFpsDrop.setTextColor(droppedFrames > 0 ? Color.RED : Color.GREEN);
+        }
+    }
+
+    /** Hide right-side controls + zoom slider + stats chip after a few seconds of no touch. */
+    private final Runnable hideControlsRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (rightControls != null) rightControls.animate().alpha(0f).setDuration(250).start();
+            if (zoomSlider != null) zoomSlider.animate().alpha(0f).setDuration(250).start();
+            if (statsChip != null) statsChip.animate().alpha(0.4f).setDuration(250).start();
+        }
+    };
+
+    private void showControls() {
+        if (rightControls != null) rightControls.animate().alpha(1f).setDuration(150).start();
+        if (zoomSlider != null) zoomSlider.animate().alpha(1f).setDuration(150).start();
+        if (statsChip != null) statsChip.animate().alpha(1f).setDuration(150).start();
+        handler.removeCallbacks(hideControlsRunnable);
+        handler.postDelayed(hideControlsRunnable, CONTROLS_HIDE_DELAY_MS);
     }
 
     Runnable setZoomSliderVisibility = new Runnable() {
@@ -555,85 +915,221 @@ public class Camera2Fragment extends Fragment
         }
     };
 
+    /**
+     * Launches the system MediaProjection consent dialog. Used both when the user picks
+     * "Screen" from the popup menu (so the token is pre-acquired while we're still in the
+     * foreground) and when {@link Camera2Service#onBubbleTap()} needs us to grant it before
+     * starting a screen stream. No-op if the token is already held.
+     */
+    public void requestScreenCapture() {
+        if (camera_service == null) return;
+        if (camera_service.hasScreenCapture()) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            Toast.makeText(activity, "Screen streaming requires Android 5.0 or higher", Toast.LENGTH_LONG).show();
+            return;
+        }
+        Intent captureIntent = camera_service.createScreenCaptureIntent();
+        if (captureIntent == null) {
+            Toast.makeText(activity, "Unable to start screen capture", Toast.LENGTH_LONG).show();
+            return;
+        }
+        camera_service.prepareForScreenCapture();
+        awaitingScreenCapturePermission = true;
+        screenCaptureLauncher.launch(captureIntent);
+    }
+
+    /**
+     * Enter touch-lock mode. While engaged, the {@code touch_lock_overlay} (a transparent
+     * full-screen FrameLayout) swallows all touches except a long-press on the centred badge.
+     * Lets the operator carry the phone around / re-grip it during a stream without risking
+     * an accidental "Stop stream" tap.
+     */
+    private void lockTouches() {
+        if (touchLockOverlay == null) return;
+        touchLockOverlay.setVisibility(View.VISIBLE);
+        touchLockOverlay.bringToFront();
+        Toast.makeText(activity, R.string.touch_lock_just_locked, Toast.LENGTH_SHORT).show();
+    }
+
+    private void unlockTouches() {
+        if (touchLockOverlay == null) return;
+        touchLockOverlay.setVisibility(View.GONE);
+    }
+
+    /**
+     * Long-press handler on the record button — pops a sheet so the operator can flip
+     * between stream-only / record-only / stream+record and tweak resolution & bitrate
+     * without going through Settings. Applied values are written back to SharedPreferences
+     * so the existing pref-change listener in {@link Camera2Service} re-runs {@code getSettings()}
+     * and re-prepares the encoders.
+     */
+    private void showRecordOptions() {
+        if (camera_service != null
+                && (camera_service.getStream().isStreaming() || camera_service.getStream().isRecording())) {
+            Toast.makeText(activity, "Stop the current stream first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View v = LayoutInflater.from(activity).inflate(R.layout.dialog_record_options, null);
+        android.widget.RadioGroup modeGroup = v.findViewById(R.id.opt_mode_group);
+        android.widget.RadioGroup resGroup = v.findViewById(R.id.opt_res_group);
+        android.widget.RadioGroup brGroup = v.findViewById(R.id.opt_br_group);
+
+        // Pre-select from current prefs.
+        boolean stream = pref.getBoolean(Preferences.STREAM_VIDEO, Preferences.STREAM_VIDEO_DEFAULT);
+        boolean record = pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT);
+        int modeId;
+        if (stream && record) modeId = R.id.opt_mode_both;
+        else if (record) modeId = R.id.opt_mode_record;
+        else modeId = R.id.opt_mode_stream;
+        modeGroup.check(modeId);
+
+        // Resolution: we store an index into Camera2Source.getResolutionsBack(), but the user
+        // sees friendly labels. We default to 1080p; if their saved index is unknown we keep current.
+        String savedRes = pref.getString(Preferences.VIDEO_RESOLUTION, Preferences.VIDEO_RESOLUTION_DEFAULT);
+        // Mapping is heuristic — we just remember the user's choice via a separate pref string.
+        String quickRes = pref.getString("quick_resolution", "1080");
+        if ("720".equals(quickRes)) resGroup.check(R.id.opt_res_720);
+        else if ("480".equals(quickRes)) resGroup.check(R.id.opt_res_480);
+        else resGroup.check(R.id.opt_res_1080);
+
+        int kbps;
+        try { kbps = Integer.parseInt(pref.getString(Preferences.VIDEO_BITRATE, Preferences.VIDEO_BITRATE_DEFAULT)); }
+        catch (NumberFormatException e) { kbps = 1000; }
+        int brId;
+        if (kbps >= 8000) brId = R.id.opt_br_8;
+        else if (kbps >= 4000) brId = R.id.opt_br_4;
+        else if (kbps >= 2000) brId = R.id.opt_br_2;
+        else brId = R.id.opt_br_1;
+        brGroup.check(brId);
+
+        new androidx.appcompat.app.AlertDialog.Builder(activity)
+                .setTitle(R.string.record_options_title)
+                .setView(v)
+                .setPositiveButton(R.string.record_apply, (d, w) -> {
+                    SharedPreferences.Editor e = pref.edit();
+                    int mode = modeGroup.getCheckedRadioButtonId();
+                    e.putBoolean(Preferences.STREAM_VIDEO, mode != R.id.opt_mode_record);
+                    e.putBoolean(Preferences.RECORD_VIDEO, mode != R.id.opt_mode_stream);
+
+                    int res = resGroup.getCheckedRadioButtonId();
+                    // Map the chosen resolution back to a sensible camera bucket. We keep the
+                    // VIDEO_RESOLUTION pref untouched so that the camera-resolution selector
+                    // in Settings still works; the picker writes to the USB pref (used as our
+                    // direct width/height inputs for non-Camera2 sources) and a tracking key.
+                    int width = 1920, height = 1080;
+                    String tag = "1080";
+                    if (res == R.id.opt_res_720) { width = 1280; height = 720; tag = "720"; }
+                    else if (res == R.id.opt_res_480) { width = 854; height = 480; tag = "480"; }
+                    e.putString("quick_resolution", tag);
+                    e.putString(Preferences.USB_WIDTH, String.valueOf(width));
+                    e.putString(Preferences.USB_HEIGHT, String.valueOf(height));
+
+                    int br = brGroup.getCheckedRadioButtonId();
+                    int targetKbps = 1000;
+                    if (br == R.id.opt_br_2) targetKbps = 2000;
+                    else if (br == R.id.opt_br_4) targetKbps = 4000;
+                    else if (br == R.id.opt_br_8) targetKbps = 8000;
+                    e.putString(Preferences.VIDEO_BITRATE, String.valueOf(targetKbps));
+
+                    e.apply();
+                    Toast.makeText(activity, "Options applied", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(android.R.string.cancel, (d, w) -> d.dismiss())
+                .show();
+    }
+
+    /**
+     * Show a list of all available cameras with human-readable labels (facing + focal length).
+     * The user's selection is preserved via {@link Camera2Service#selectCameraByIndex(int)};
+     * the bug where startStream() would silently revert to camera 0 is fixed in the service
+     * via the restore-selected-camera path inside prepareEncoders().
+     */
+    private void showCameraPicker() {
+        if (camera_service == null) {
+            Toast.makeText(activity, "Service not ready", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        java.util.List<String> ids = camera_service.getAvailableCameraIds();
+        if (ids.isEmpty()) {
+            Toast.makeText(activity, "No cameras detected on this device", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] labels = new String[ids.size()];
+        for (int i = 0; i < ids.size(); i++) labels[i] = camera_service.describeCamera(ids.get(i));
+        int currentIdx = Math.max(0, camera_service.getCurrentCameraIndex());
+
+        new androidx.appcompat.app.AlertDialog.Builder(activity)
+                .setTitle("Choose camera")
+                .setSingleChoiceItems(labels, currentIdx, (dialog, which) -> {
+                    camera_service.selectCameraByIndex(which);
+                    setZoomRange();
+                    if (flashlight != null) flashlight.setImageResource(R.drawable.flashlight_off);
+                    dialog.dismiss();
+                })
+                .setNegativeButton(android.R.string.cancel, (d, w) -> d.dismiss())
+                .show();
+    }
+
+    /** Stops the current stream/recording and resets UI. Used by both the record button and the confirm dialog. */
+    private void doStopStream() {
+        bStartStop.setImageResource(R.drawable.ic_record);
+        if (camera_service != null) {
+            camera_service.stopStream(null, null);
+        }
+        if (service_bound) {
+            try { activity.unbindService(mConnection); } catch (IllegalArgumentException ignored) {}
+            service_bound = false;
+        }
+        unlockScreenOrientation();
+        setStatusState();
+        setPreviewSurfaceSecure(false);
+        if (screenCaptureOverlay != null) {
+            screenCaptureOverlay.setVisibility(View.GONE);
+        }
+        applyStreamState(StreamState.IDLE);
+        // After stopping a screen stream, return to local camera preview.
+        String videoSource = pref.getString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_DEFAULT);
+        if (videoSource != null && videoSource.equals(Preferences.VIDEO_SOURCE_SCREEN)
+                && camera_service != null && openGlView != null && openGlView.getHolder().getSurface().isValid()) {
+            if (camera_service.hasScreenCapture()) {
+                openGlView.setVisibility(View.INVISIBLE);
+                camera_service.stopPreview();
+            } else {
+                openGlView.setVisibility(View.VISIBLE);
+                camera_service.startPreview(openGlView);
+            }
+        }
+    }
+
     @Override
     public void onClick(View v) {
         int id = v.getId();
+        // Any button tap also resets the auto-hide timer.
+        showControls();
         if (id == R.id.b_start_stop) {
-            if (!service_bound) {
-                String videoSource = pref.getString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_DEFAULT);
-                if (videoSource != null && videoSource.equals(Preferences.VIDEO_SOURCE_SCREEN)) {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-                        Toast.makeText(activity, "Screen streaming requires Android 5.0 or higher", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-
-                    if (camera_service == null) {
-                        Toast.makeText(activity, "Service not ready, please try again", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-
-                    if (!camera_service.hasScreenCapture()) {
-                        Intent captureIntent = camera_service.createScreenCaptureIntent();
-                        if (captureIntent != null) {
-                            camera_service.prepareForScreenCapture();
-                            awaitingScreenCapturePermission = true;
-                            bStartStop.setImageResource(R.drawable.stop);
-                            lockScreenOrientation();
-                            screenCaptureLauncher.launch(captureIntent);
-                        } else {
-                            Toast.makeText(activity, "Unable to start screen capture", Toast.LENGTH_LONG).show();
-                            bStartStop.setImageResource(R.drawable.ic_record);
-                            unlockScreenOrientation();
-                        }
-                        return;
-                    } else {
-                        // We already have capture permission; set local UI state immediately.
-                        setPreviewSurfaceSecure(true);
-                        if (openGlView != null) {
-                            openGlView.setVisibility(View.INVISIBLE);
-                        }
-                        if (screenCaptureOverlay != null) {
-                            screenCaptureOverlay.setVisibility(View.VISIBLE);
-                            screenCaptureOverlay.bringToFront();
-                        }
-                    }
-                }
-
-                activity.bindService(new Intent(activity, Camera2Service.class), mConnection, Context.BIND_IMPORTANT);
-                bStartStop.setImageResource(R.drawable.stop);
-                lockScreenOrientation();
-                if (pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT)) {
-                    tvRecording.setText(R.string.yes);
-                    tvRecording.setTextColor(Color.GREEN);
-                }
-            } else {
-                bStartStop.setImageResource(R.drawable.ic_record);
-                camera_service.stopStream(null, null);
-                activity.unbindService(mConnection);
-                service_bound = false;
-                unlockScreenOrientation();
-                setStatusState();
-                setPreviewSurfaceSecure(false);
-                if (screenCaptureOverlay != null) {
-                    screenCaptureOverlay.setVisibility(View.GONE);
-                }
-                // After stopping a screen stream, return to local camera preview.
-                String videoSource = pref.getString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_DEFAULT);
-                if (videoSource != null && videoSource.equals(Preferences.VIDEO_SOURCE_SCREEN)
-                        && openGlView != null && openGlView.getHolder().getSurface().isValid()) {
-                    if (camera_service.hasScreenCapture()) {
-                        openGlView.setVisibility(View.INVISIBLE);
-                        camera_service.stopPreview();
-                    } else {
-                        openGlView.setVisibility(View.VISIBLE);
-                        camera_service.startPreview(openGlView);
-                    }
-                }
+            // Confirm before stopping an active stream — avoids accidental taps in the field.
+            if (service_bound && camera_service != null
+                    && (camera_service.getStream().isStreaming() || camera_service.getStream().isRecording())) {
+                new androidx.appcompat.app.AlertDialog.Builder(activity)
+                        .setTitle(R.string.confirm_stop_title)
+                        .setMessage(R.string.confirm_stop_message)
+                        .setPositiveButton(android.R.string.ok, (d, w) -> doStopStream())
+                        .setNegativeButton(android.R.string.cancel, (d, w) -> d.dismiss())
+                        .show();
+                return;
             }
+            if (!service_bound) {
+                // Orientation is chosen up-front with the rotate button (the preview already shows
+                // exactly what the broadcast will look like), so just start.
+                proceedStartStream();
+            } else {
+                doStopStream();
+            }
+        } else if (id == R.id.orientation_rotate) {
+            rotateStreamOrientation();
         } else if (id == R.id.switch_camera) {
-            camera_service.switchCamera();
-            setZoomRange();
-            flashlight.setImageResource(R.drawable.flashlight_off);
+            showCameraPicker();
         } else if (id == R.id.settingsButton) {
             Intent intent = new Intent(activity, SettingsActivity.class);
             startActivity(intent);
@@ -651,6 +1147,110 @@ public class Camera2Fragment extends Fragment
         }
     }
 
+    /**
+     * Pre-stream prompt: landscape or portrait OUTPUT. Tapping a choice records it and proceeds
+     * straight into the start sequence. The chosen orientation pins the activity (so preview +
+     * output match) and drives the encoder rotation via {@link Preferences#FORCE_LANDSCAPE}.
+     */
+    /** Map the chosen stream orientation to an Activity orientation constant. */
+    private int streamOrientationToActivity() {
+        String o = pref.getString(Preferences.STREAM_ORIENTATION, Preferences.STREAM_ORIENTATION_DEFAULT);
+        return Preferences.STREAM_ORIENTATION_PORTRAIT.equals(o)
+                ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                : ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+    }
+
+    /**
+     * Rotate button: toggle the preview/stream orientation (landscape ↔ portrait). Rotating the
+     * activity triggers {@link #onConfigurationChanged} which re-prepares the encoders + restarts
+     * the preview, so the source adapts and the preview shows EXACTLY what the broadcast will look
+     * like. Blocked while live (can't re-orient mid-broadcast).
+     */
+    private void rotateStreamOrientation() {
+        boolean active = false;
+        try {
+            active = service_bound && camera_service != null
+                    && (camera_service.getStream().isStreaming() || camera_service.getStream().isRecording());
+        } catch (Throwable ignored) {}
+        if (active) {
+            Toast.makeText(activity, "Stop the broadcast to change orientation", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String cur = pref.getString(Preferences.STREAM_ORIENTATION, Preferences.STREAM_ORIENTATION_DEFAULT);
+        boolean toPortrait = !Preferences.STREAM_ORIENTATION_PORTRAIT.equals(cur);   // toggle
+        setStreamOrientation(toPortrait
+                ? Preferences.STREAM_ORIENTATION_PORTRAIT
+                : Preferences.STREAM_ORIENTATION_LANDSCAPE);
+        if (activity != null) activity.setRequestedOrientation(streamOrientationToActivity());
+        Toast.makeText(activity, toPortrait ? R.string.orientation_portrait : R.string.orientation_landscape,
+                Toast.LENGTH_SHORT).show();
+    }
+
+    /** Persist the chosen output orientation and keep FORCE_LANDSCAPE in sync for the encoder. */
+    private void setStreamOrientation(String orientation) {
+        boolean landscape = Preferences.STREAM_ORIENTATION_LANDSCAPE.equals(orientation);
+        pref.edit()
+                .putString(Preferences.STREAM_ORIENTATION, orientation)
+                .putBoolean(Preferences.FORCE_LANDSCAPE, landscape)
+                .apply();
+    }
+
+    /** The actual start sequence (formerly inline in the record button handler). */
+    private void proceedStartStream() {
+        if (service_bound) return;
+        String videoSource = pref.getString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_DEFAULT);
+        if (videoSource != null && videoSource.equals(Preferences.VIDEO_SOURCE_SCREEN)) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                Toast.makeText(activity, "Screen streaming requires Android 5.0 or higher", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            if (camera_service == null) {
+                Toast.makeText(activity, "Service not ready, please try again", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            if (!camera_service.hasScreenCapture()) {
+                Intent captureIntent = camera_service.createScreenCaptureIntent();
+                if (captureIntent != null) {
+                    camera_service.prepareForScreenCapture();
+                    awaitingScreenCapturePermission = true;
+                    bStartStop.setImageResource(R.drawable.stop);
+                    lockScreenOrientation();
+                    screenCaptureLauncher.launch(captureIntent);
+                } else {
+                    Toast.makeText(activity, "Unable to start screen capture", Toast.LENGTH_LONG).show();
+                    bStartStop.setImageResource(R.drawable.ic_record);
+                    unlockScreenOrientation();
+                }
+                return;
+            } else {
+                // We already have capture permission; set local UI state immediately.
+                setPreviewSurfaceSecure(true);
+                if (openGlView != null) {
+                    openGlView.setVisibility(View.INVISIBLE);
+                }
+                if (screenCaptureOverlay != null) {
+                    screenCaptureOverlay.setVisibility(View.VISIBLE);
+                    screenCaptureOverlay.bringToFront();
+                }
+            }
+        }
+
+        activity.bindService(new Intent(activity, Camera2Service.class), mConnection, Context.BIND_IMPORTANT);
+        bStartStop.setImageResource(R.drawable.stop);
+        lockScreenOrientation();
+        if (pref.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT)) {
+            tvRecording.setText("on");
+            tintDot(recDot, COLOR_OK);
+        }
+        // Switch the state chip immediately — the user tapped record. The
+        // STREAM_CONNECTED broadcast will then flip it to LIVE when the server accepts
+        // the connection, or onConnectionFailed will flip it to ERROR.
+        applyStreamState(StreamState.CONNECTING);
+        droppedFrames = 0;
+    }
+
     @Override
     public boolean onMenuItemClick(MenuItem menuItem) {
         return popupMenuHandler.onMenuItemClick(menuItem, flashlight);
@@ -660,13 +1260,12 @@ public class Camera2Fragment extends Fragment
     public boolean onTouch(View view, MotionEvent motionEvent) {
         int action = motionEvent.getAction();
 
-        // Show the zoom slider when the screen is touched
+        // Any touch on the preview reveals the right-side controls + zoom slider and resets the
+        // auto-hide timer. After 3 s of inactivity they fade out again so the preview is clean.
         if (action == MotionEvent.ACTION_DOWN) {
-            zoomSlider.animate().alpha(1f);
+            showControls();
             handler.removeCallbacks(setZoomSliderVisibility);
         }
-
-        // Hide the zoom slider three seconds after user stops touching the screen
         if (action == MotionEvent.ACTION_UP) {
             handler.postDelayed(setZoomSliderVisibility, 3000);
         }
@@ -696,6 +1295,14 @@ public class Camera2Fragment extends Fragment
     @Override
     public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
         Log.d(LOGTAG, "surfaceCreated");
+        // Defensive: surfaceCreated is sometimes the only callback we get if the surface size
+        // doesn't actually change after creation. Without this the preview only starts once
+        // surfaceChanged fires, which can be racy on cold launch — leading to "have to start the
+        // app a couple times until it works".
+        if (camera_service != null && surfaceHolder.getSurface().isValid()) {
+            Log.i(LOGTAG, "surfaceCreated starting preview");
+            camera_service.startPreview(openGlView);
+        }
     }
 
     @Override
@@ -711,11 +1318,17 @@ public class Camera2Fragment extends Fragment
     public void surfaceDestroyed(@NonNull SurfaceHolder surfaceHolder) {
         Log.d(LOGTAG, "surfaceDestroyed");
         if (camera_service != null) {
-            camera_service.stopPreview();
+            boolean active = camera_service.getStream().isStreaming() || camera_service.getStream().isRecording();
+            if (active) {
+                Log.d(LOGTAG, "surfaceDestroyed while streaming; not stopping preview");
+            } else {
+                camera_service.stopPreview();
+            }
         }
     }
 
-    //Handle screen rotation
+    //Handle screen rotation. Note: with screenOrientation="sensorLandscape" + force_landscape
+    //pref on, this normally only fires on the 180° landscape flip, not portrait↔landscape.
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
@@ -729,14 +1342,16 @@ public class Camera2Fragment extends Fragment
 
         getViews();
 
-        camera_service.stopPreview();
-        camera_service.prepareEncoders();
-        camera_service.startPreview(openGlView);
-
-        //When the screen rotates, the timestamp text will disappear but the clock runnable will still run.
-        //This stops the clock if it's running and shows the text again if it's enabled.
-        popupMenuHandler.stopClock();
-        popupMenuHandler.toggleText();
+        // Camera2Service may not be bound yet during cold launch; guard so we don't crash with NPE.
+        if (camera_service != null) {
+            camera_service.stopPreview();
+            camera_service.prepareEncoders();
+            camera_service.startPreview(openGlView);
+        }
+        if (popupMenuHandler != null) {
+            popupMenuHandler.stopClock();
+            popupMenuHandler.toggleText();
+        }
     }
 
     @Override

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SENTINEL source-selection landing page. Shown first; the user picks the broadcast source here
+  (you can't change source mid-broadcast, so choosing up front is the cleaner flow). Picking GoPro
+  kicks off the BLE→Wi-Fi connect flow on the next screen.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/source_selection_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="48dp"
+        android:paddingBottom="32dp">
+
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="@string/app_name" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/app_name"
+            android:textColor="@android:color/white"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.12" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/select_source_subtitle"
+            android:textColor="#99FFFFFF"
+            android:textSize="13sp"
+            android:letterSpacing="0.03" />
+
+        <!-- Phone Camera -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_source_camera"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="36dp"
+            android:minHeight="60dp"
+            android:text="@string/source_phone_camera"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            app:strokeColor="#55FFFFFF"
+            app:rippleColor="#33FFFFFF"
+            app:cornerRadius="12dp" />
+
+        <!-- USB Camera -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_source_usb"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="60dp"
+            android:text="@string/source_usb_camera"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            app:strokeColor="#55FFFFFF"
+            app:rippleColor="#33FFFFFF"
+            app:cornerRadius="12dp" />
+
+        <!-- Screen -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_source_screen"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="60dp"
+            android:text="@string/source_screen"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            app:strokeColor="#55FFFFFF"
+            app:rippleColor="#33FFFFFF"
+            app:cornerRadius="12dp" />
+
+        <!-- GoPro — accented, since it kicks off the connect flow -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_source_gopro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="60dp"
+            android:text="@string/source_gopro"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:backgroundTint="@color/appColor"
+            app:rippleColor="#55FFFFFF"
+            app:cornerRadius="12dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:text="@string/select_source_hint"
+            android:textColor="#66FFFFFF"
+            android:textSize="11sp" />
+    </LinearLayout>
+</ScrollView>

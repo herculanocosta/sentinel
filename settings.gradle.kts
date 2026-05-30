@@ -25,6 +25,6 @@ sourceControl {
     }
 }
 
-rootProject.name = "OpenTAK ICU"
+rootProject.name = "SENTINEL"
 include(":app")
  

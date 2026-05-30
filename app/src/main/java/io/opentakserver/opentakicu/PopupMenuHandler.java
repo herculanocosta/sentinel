@@ -1,9 +1,11 @@
 package io.opentakserver.opentakicu;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -130,12 +132,34 @@ public class PopupMenuHandler implements SharedPreferences.OnSharedPreferenceCha
 
             return true;
         }
+        if (item == R.id.video_source_gopro) {
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+            if (camera2Service.getStream().isStreaming() || camera2Service.getStream().isRecording()) {
+                Toast.makeText(context, "Can't switch video sources while streaming or recording", Toast.LENGTH_LONG).show();
+                return true;
+            }
+            // Start the BLE → Wi-Fi auto-connect flow. Camera2Service handles the actual
+            // setup and will switch the video source on success.
+            io.opentakserver.opentakicu.gopro.GoProDialogs.startAutoConnect(context, camera2Service, () -> {
+                preferences.edit().putString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_GOPRO).apply();
+                flashlight.setImageResource(R.drawable.flashlight_off);
+            });
+            return true;
+        }
         if (item == R.id.video_source_screen) {
             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
             if (!camera2Service.getStream().isStreaming() && !camera2Service.getStream().isRecording()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     preferences.edit().putString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_SCREEN).apply();
                     flashlight.setImageResource(R.drawable.flashlight_off);
+                    // Pre-acquire the MediaProjection token while the activity is still in the
+                    // foreground. Without this, a subsequent bubble-tap from another app can't
+                    // start a screen stream (the system dialog requires an Activity) and silently
+                    // falls back to the camera. Routed via broadcast so the camera fragment owns
+                    // the ActivityResultLauncher.
+                    if (!camera2Service.hasScreenCapture()) {
+                        context.sendBroadcast(new Intent(Camera2Service.REQUEST_SCREEN_CAPTURE));
+                    }
                 } else {
                     Toast.makeText(context, "Screen streaming requires Android 5.0 or higher", Toast.LENGTH_LONG).show();
                 }
@@ -143,6 +167,13 @@ public class PopupMenuHandler implements SharedPreferences.OnSharedPreferenceCha
                 Toast.makeText(context, "Can't switch video sources while streaming or recording", Toast.LENGTH_LONG).show();
             }
 
+            return true;
+        }
+
+        if (item == R.id.lock_screen) {
+            // Tell the camera fragment to slap the touch-lock overlay on. The fragment owns the
+            // UI, so we just broadcast. The user releases with a long-press on the overlay.
+            context.sendBroadcast(new Intent(Camera2Service.LOCK_SCREEN));
             return true;
         }
 
