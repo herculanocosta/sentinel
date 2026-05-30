@@ -1,0 +1,33 @@
+name: Build APK
+
+# Builds a debug APK on every push to the sentinel branch (and on PRs / manual run).
+# Runs inside the same container the project builds with locally, so the toolchain
+# (JDK, Android SDK, Gradle 9.3.1 / AGP 9.1.0) matches exactly. No signing secrets are
+# needed for the debug build; release signing stays local (keystore.properties is gitignored).
+
+on:
+  push:
+    branches: [ sentinel ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: reactnativecommunity/react-native-android:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug -x lint --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
