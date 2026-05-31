@@ -1,0 +1,87 @@
+# XcodeGen project spec. Generates Sentinel.xcodeproj from this YAML — no binary project file
+# is checked in. Run `xcodegen generate` (after `brew install xcodegen`) on the Mac.
+
+name: Sentinel
+options:
+  bundleIdPrefix: org.artyllm
+  deploymentTarget:
+    iOS: "16.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  groupSortPosition: top
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1,2"    # iPhone + iPad
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    CODE_SIGN_STYLE: Automatic
+
+packages:
+  HaishinKit:
+    # RTMP / RTSP / SRT publisher built on AVFoundation. Provides RTMPStream / SRTStream /
+    # RTSPStream that take an AVCaptureSession feed and a server URL.
+    url: https://github.com/shogo4405/HaishinKit.swift
+    from: "1.9.6"
+
+targets:
+  Sentinel:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sentinel
+        excludes:
+          - "Info.plist"
+          - "**/*.entitlements"
+    resources:
+      - path: Sentinel/Resources/Assets.xcassets
+        optional: true
+    info:
+      path: Sentinel/Info.plist
+      properties:
+        CFBundleDisplayName: SENTINEL
+        CFBundleShortVersionString: "2.0.0"
+        CFBundleVersion: "1"
+        UILaunchScreen:
+          UIColorName: ""
+        UIRequiredDeviceCapabilities: [arm64]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - audio              # keeps encoder running with screen off
+          - bluetooth-central  # GoPro BLE link survives backgrounding
+        NSCameraUsageDescription:        Stream the camera to a remote server.
+        NSMicrophoneUsageDescription:    Capture audio alongside the camera stream.
+        NSLocationWhenInUseUsageDescription:
+          Tag the video with timestamp + GPS and report position to the TAK server.
+        NSBluetoothAlwaysUsageDescription:
+          Pair with a GoPro camera over Bluetooth Low Energy.
+        NSLocalNetworkUsageDescription:
+          Push streams to a local MediaMTX or TAK Server on your network.
+        NSBonjourServices: ["_rtsp._tcp", "_rtmp._tcp", "_srt._udp"]
+    entitlements:
+      path: Sentinel/Resources/Sentinel.entitlements
+      properties:
+        com.apple.developer.networking.HotspotConfiguration: true
+        com.apple.developer.networking.networkextension: [packet-tunnel-provider]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.artyllm.sentinel
+        MARKETING_VERSION: "2.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+    dependencies:
+      - package: HaishinKit
+        product: HaishinKit
+      - package: HaishinKit
+        product: SRTHaishinKit
+
+  SentinelTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [SentinelTests]
+    dependencies:
+      - target: Sentinel
