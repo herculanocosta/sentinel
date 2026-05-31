@@ -12,13 +12,34 @@ import SwiftUI
 struct SentinelApp: App {
     @StateObject private var deps = AppDependencies()
 
+    @State private var pendingImportURL: URL?
+
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(deps)
                 .preferredColorScheme(.dark)
+                // AirDrop / share-sheet / Files "Open with SENTINEL" route lands here.
+                .onOpenURL { url in
+                    if url.pathExtension.lowercased() == "zip" {
+                        pendingImportURL = url
+                    }
+                }
+                .sheet(item: Binding(
+                    get: { pendingImportURL.map { IdentifiableURL(url: $0) } },
+                    set: { pendingImportURL = $0?.url }
+                )) { wrapped in
+                    NavigationStack {
+                        TAKImportView(autoImport: wrapped.url)
+                    }
+                }
         }
     }
+}
+
+private struct IdentifiableURL: Identifiable {
+    let url: URL
+    var id: URL { url }
 }
 
 /// Container for the long-lived services. Created once at app start, lives until process death.

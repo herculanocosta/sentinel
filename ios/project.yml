@@ -25,6 +25,10 @@ packages:
     # RTSPStream that take an AVCaptureSession feed and a server URL.
     url: https://github.com/shogo4405/HaishinKit.swift
     from: "1.9.6"
+  ZIPFoundation:
+    # Read ATAK / TAK Server data-package .zip files. Pure Swift, no Foundation Archive coupling.
+    url: https://github.com/weichsel/ZIPFoundation
+    from: "0.9.19"
 
 targets:
   Sentinel:
@@ -64,6 +68,13 @@ targets:
         NSLocalNetworkUsageDescription:
           Push streams to a local MediaMTX or TAK Server on your network.
         NSBonjourServices: ["_rtsp._tcp", "_rtmp._tcp", "_srt._udp"]
+        # Open .zip data packages from Files / AirDrop / share sheet straight into SENTINEL.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: TAK Data Package
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: ["public.zip-archive", "com.pkware.zip-archive"]
+            CFBundleTypeIconFiles: []
     entitlements:
       path: Sentinel/Resources/Sentinel.entitlements
       properties:
@@ -79,6 +90,8 @@ targets:
         product: HaishinKit
       - package: HaishinKit
         product: SRTHaishinKit
+      - package: ZIPFoundation
+        product: ZIPFoundation
       - target: SentinelWidget   # bundled at app build time
       - target: SentinelWatch    # watchOS companion app — embedded into the iPhone app
     info:

@@ -34,6 +34,10 @@ enum Pref {
     static let atakMarkerType     = "atak_marker_type"
     static let atakVideoAlias     = "atak_video_alias"
     static let atakSSL            = "atak_ssl"
+    static let atakTrustStorePath     = "atak_trust_store_path"
+    static let atakTrustStorePassword = "atak_trust_store_password"
+    static let atakClientCertPath     = "atak_client_cert_path"
+    static let atakClientCertPassword = "atak_client_cert_password"
 
     // ---- Server presets ------------------------------------------------------------------
     static let serverPresets      = "server_presets"       // JSON array

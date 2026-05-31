@@ -44,6 +44,19 @@ struct SettingsView: View {
                 NavigationLink("Server presets", destination: ServerPresetsView())
             }
             Section("ATAK") {
+                NavigationLink {
+                    TAKImportView()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Import TAK data package")
+                            Text("Apply server + certs from a .zip your TAK admin gave you")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "doc.zipper")
+                    }
+                }
                 Toggle("Publish video marker on TAK map", isOn: $atakSendCoT)
                 LabeledContent("Marker name") {
                     TextField("SENTINEL", text: $atakCallsign).multilineTextAlignment(.trailing)
