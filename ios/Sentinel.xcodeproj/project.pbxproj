@@ -1,0 +1,886 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00458ECA1B4402ECC69BFAD6 /* PresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C84725B11565C2607B1F62 /* PresetStore.swift */; };
+		08BBD3EA0BAC36A4A6E83446 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0593799F5A7EB2E82CDCCF4C /* Assets.xcassets */; };
+		0A459B59B6CDB41982E5FEE1 /* SourceSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41186F5DE2FAB150A6757D29 /* SourceSelectionView.swift */; };
+		0D548A89425BE4E795B0FE3B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B71BECD81357A2B5420EED9 /* SettingsView.swift */; };
+		0E5031B415CCFC6424897A01 /* CameraStreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCF11F74C8C4C2C40E4A4A45 /* CameraStreamView.swift */; };
+		10E5070F21A9EADEDEA8C68E /* GoProStreamingBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5128518C49D55ADFB9B6373 /* GoProStreamingBridge.swift */; };
+		157E987A51C424E459B17E08 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F5AAD5D0F923FE591ACE9C /* LiveActivityController.swift */; };
+		2085C3142D160CAFD74EB882 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955DDFF8760AC1DFC55DE203 /* Preferences.swift */; };
+		2F99E39D5907242E056D2C2D /* ServerPresetEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3EBA2AA753F6C826A30246 /* ServerPresetEditView.swift */; };
+		337E1E822C6CA0E3215EAF75 /* ServerPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBAFC200D961A553965D5646 /* ServerPresetTests.swift */; };
+		3413D14D8AF48692ECF18480 /* PreflightCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D33CAAB1B1DF277F9B7B3386 /* PreflightCheckView.swift */; };
+		34956EB569B46A9F8D4EED15 /* SentinelWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B90585A449F3406A653D4825 /* SentinelWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		37B1972CF3599F9E034FB204 /* WatchBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984F0B2103740A507433EAB4 /* WatchBridge.swift */; };
+		429192771E05AFF3EBB3690C /* CameraPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98E35BBAD59706ECC8ED9E15 /* CameraPickerView.swift */; };
+		4525EE51485A0C9749297364 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 200DEBE7EB6ACA752353A0A7 /* ZIPFoundation */; };
+		5AFEE85127F1089CFCF70A7F /* LocalRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7BDEE6999F2906B597A89C /* LocalRecorder.swift */; };
+		6A226B4EA23F6AFB2408C0A3 /* ServerPresetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1249CFE00D3ECE59B6A649AD /* ServerPresetsView.swift */; };
+		74E477B94C58D9D1FAC92DDC /* CoTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB705D2D6C27238FE24002B7 /* CoTService.swift */; };
+		75E4099E6B475574A9E7D546 /* GoProService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B1950DCAAF32051EECD836 /* GoProService.swift */; };
+		76A3C0C6ABC7D34D3176362F /* SentinelLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D12C745E22D49E66DA812D7 /* SentinelLiveActivityWidget.swift */; };
+		76AFD35BAD2F92D0BD1777B5 /* TakConnectionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE05E7BBFE90B698B20193B4 /* TakConnectionTest.swift */; };
+		78804C58A0DDAF42B13AC5AB /* StreamingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF71EFC073C2F6C1A70A04C2 /* StreamingService.swift */; };
+		7C3D7351A2BE6BC8154C7BD3 /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7158CB888978C902BAD988B0 /* SRTHaishinKit */; };
+		82D0EFAF9A672387FFAC483E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F4388EE9F0B75BE5F83BF961 /* PrivacyInfo.xcprivacy */; };
+		82FE55F6D52C34A74F732A31 /* PreflightChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 771F1B1C6BF6E1FF1923086A /* PreflightChecker.swift */; };
+		8AE5B627E141EDC5E291DF33 /* SentinelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFF0C80D3FE7CB2DEFBEC811 /* SentinelApp.swift */; };
+		93E5B99C9668EDA4B9F78EC9 /* CameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC30EC65B7081798AE4B23B4 /* CameraService.swift */; };
+		9E39427EE672983116135E44 /* ServerPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03827CAB17AC5E40CD82137 /* ServerPreset.swift */; };
+		9F52C44F28BE39A1686F5E4E /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F5AAD5D0F923FE591ACE9C /* LiveActivityController.swift */; settings = {COMPILER_FLAGS = "-target-min-inlining-version min"; }; };
+		BD3A528A569F29BAEFDA0B87 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EFBB8F58AC2811254C8C5B /* OnboardingView.swift */; };
+		BD3E0E75BA0BFA6C15BB6926 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F37E90CC547B0A1661C5745D /* LocationService.swift */; };
+		C04F188D3EA6194870D0ADA4 /* SentinelWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C38DC98B1EB00256BAE74A /* SentinelWidgetBundle.swift */; };
+		C8CA6AA26DC2EE64063B7E3F /* WatchPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE98D6B559C734BD8BDE6CEA /* WatchPayload.swift */; };
+		CC2A89AE8EE3BFAF9E98612A /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D58C369BFBBECA7890EC4105 /* AppIntents.swift */; };
+		CDD39C04C5F7A05A066F9D52 /* SentinelWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83F9017EE3ECB38DB3AC7B21 /* SentinelWatchApp.swift */; };
+		D132B2A07BEE45FDBC7E530B /* TAKImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEE3F4EA04A9B698E84D07A /* TAKImportView.swift */; };
+		D1E3A39E35A0F536B0B5FD1F /* SentinelWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1DA8A26A91A7D9B0CA9BD799 /* SentinelWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D46FD6EC6B785BEA0C01777E /* WatchPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE98D6B559C734BD8BDE6CEA /* WatchPayload.swift */; };
+		DA323E407B75942937892F41 /* TakDataPackageImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7F6F1963C6CF42C4104DF92 /* TakDataPackageImporter.swift */; };
+		EB725F68C4DDB7DEFE13F064 /* iCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02B2B54109B8F1AD23757826 /* iCloudSync.swift */; };
+		EC21DF69BD90FAD5A10A58E2 /* HaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 43F1FADB139A06C01CDEA291 /* HaishinKit */; };
+		EC23B6AE7340C60D61770F04 /* CoTEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD3BF59AA1208DBDF9202E7 /* CoTEvent.swift */; };
+		ED2095026E14A73478C756F4 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7E146963F422BD52D73C01CB /* Localizable.strings */; };
+		F0004C0240475043789192DC /* GoProHEVCIngest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D912EEC01F8CED1349123D2F /* GoProHEVCIngest.swift */; };
+		F12D25E3267244B5C44478E5 /* OverlayRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8CCF763FF9457AA0E52FB0 /* OverlayRenderer.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		654ED3D11904086A6AFF4879 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 079160C1D2997F6CD4B7E444 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D2C6F997EA9BEB68A03BAD9F;
+			remoteInfo = SentinelWatch;
+		};
+		8F3CCC4FFC21DB98D6494777 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 079160C1D2997F6CD4B7E444 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CAEBDEF29C6933CD82DDB69F;
+			remoteInfo = SentinelWidget;
+		};
+		B886CE0F96823A49446C4687 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 079160C1D2997F6CD4B7E444 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1EE40873B706D1F6E7A3567;
+			remoteInfo = Sentinel;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B678235530C837648B60BE5E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D1E3A39E35A0F536B0B5FD1F /* SentinelWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F328F98FD475DBCD7593B5B9 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				34956EB569B46A9F8D4EED15 /* SentinelWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		01F5AAD5D0F923FE591ACE9C /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
+		02B2B54109B8F1AD23757826 /* iCloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudSync.swift; sourceTree = "<group>"; };
+		0593799F5A7EB2E82CDCCF4C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1249CFE00D3ECE59B6A649AD /* ServerPresetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPresetsView.swift; sourceTree = "<group>"; };
+		12C38DC98B1EB00256BAE74A /* SentinelWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentinelWidgetBundle.swift; sourceTree = "<group>"; };
+		173EA203036C2392F1140EE3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1DA8A26A91A7D9B0CA9BD799 /* SentinelWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SentinelWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		28EFBB8F58AC2811254C8C5B /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		2B71BECD81357A2B5420EED9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		3D12C745E22D49E66DA812D7 /* SentinelLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentinelLiveActivityWidget.swift; sourceTree = "<group>"; };
+		41186F5DE2FAB150A6757D29 /* SourceSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSelectionView.swift; sourceTree = "<group>"; };
+		4D7BDEE6999F2906B597A89C /* LocalRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalRecorder.swift; sourceTree = "<group>"; };
+		53150015EBD6724ED2B66739 /* Sentinel.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Sentinel.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		771F1B1C6BF6E1FF1923086A /* PreflightChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreflightChecker.swift; sourceTree = "<group>"; };
+		7BECC4C202FF73AFAAECEDE9 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pt; path = pt.lproj/Localizable.strings; sourceTree = "<group>"; };
+		81B1950DCAAF32051EECD836 /* GoProService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoProService.swift; sourceTree = "<group>"; };
+		83F9017EE3ECB38DB3AC7B21 /* SentinelWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentinelWatchApp.swift; sourceTree = "<group>"; };
+		955DDFF8760AC1DFC55DE203 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		984F0B2103740A507433EAB4 /* WatchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridge.swift; sourceTree = "<group>"; };
+		98E35BBAD59706ECC8ED9E15 /* CameraPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPickerView.swift; sourceTree = "<group>"; };
+		A6C84725B11565C2607B1F62 /* PresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetStore.swift; sourceTree = "<group>"; };
+		AFF0C80D3FE7CB2DEFBEC811 /* SentinelApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentinelApp.swift; sourceTree = "<group>"; };
+		B7F6F1963C6CF42C4104DF92 /* TakDataPackageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TakDataPackageImporter.swift; sourceTree = "<group>"; };
+		B90585A449F3406A653D4825 /* SentinelWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SentinelWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE8CCF763FF9457AA0E52FB0 /* OverlayRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayRenderer.swift; sourceTree = "<group>"; };
+		C185D2C270C2FE861EB921A5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C4DBC216FC4AB7EC35CFF27A /* SentinelTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SentinelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB705D2D6C27238FE24002B7 /* CoTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoTService.swift; sourceTree = "<group>"; };
+		CC30EC65B7081798AE4B23B4 /* CameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraService.swift; sourceTree = "<group>"; };
+		CCEE3F4EA04A9B698E84D07A /* TAKImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TAKImportView.swift; sourceTree = "<group>"; };
+		D03827CAB17AC5E40CD82137 /* ServerPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPreset.swift; sourceTree = "<group>"; };
+		D33CAAB1B1DF277F9B7B3386 /* PreflightCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreflightCheckView.swift; sourceTree = "<group>"; };
+		D58C369BFBBECA7890EC4105 /* AppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
+		D912EEC01F8CED1349123D2F /* GoProHEVCIngest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoProHEVCIngest.swift; sourceTree = "<group>"; };
+		DCF11F74C8C4C2C40E4A4A45 /* CameraStreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraStreamView.swift; sourceTree = "<group>"; };
+		DDD3BF59AA1208DBDF9202E7 /* CoTEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoTEvent.swift; sourceTree = "<group>"; };
+		DE98D6B559C734BD8BDE6CEA /* WatchPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPayload.swift; sourceTree = "<group>"; };
+		DF71EFC073C2F6C1A70A04C2 /* StreamingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingService.swift; sourceTree = "<group>"; };
+		E5128518C49D55ADFB9B6373 /* GoProStreamingBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoProStreamingBridge.swift; sourceTree = "<group>"; };
+		EBAFC200D961A553965D5646 /* ServerPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPresetTests.swift; sourceTree = "<group>"; };
+		EE05E7BBFE90B698B20193B4 /* TakConnectionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TakConnectionTest.swift; sourceTree = "<group>"; };
+		EE3EBA2AA753F6C826A30246 /* ServerPresetEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerPresetEditView.swift; sourceTree = "<group>"; };
+		F37E90CC547B0A1661C5745D /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		F4388EE9F0B75BE5F83BF961 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		FEE534B45139173E11868514 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C3B01F5DB5C7C2774DCA94EA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC21DF69BD90FAD5A10A58E2 /* HaishinKit in Frameworks */,
+				7C3D7351A2BE6BC8154C7BD3 /* SRTHaishinKit in Frameworks */,
+				4525EE51485A0C9749297364 /* ZIPFoundation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		43252CE4C9A7110F050B81A7 /* SentinelWidget */ = {
+			isa = PBXGroup;
+			children = (
+				C185D2C270C2FE861EB921A5 /* Info.plist */,
+				3D12C745E22D49E66DA812D7 /* SentinelLiveActivityWidget.swift */,
+				12C38DC98B1EB00256BAE74A /* SentinelWidgetBundle.swift */,
+			);
+			path = SentinelWidget;
+			sourceTree = "<group>";
+		};
+		4A6DA79E712ACD370C2D0657 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				DDD3BF59AA1208DBDF9202E7 /* CoTEvent.swift */,
+				D03827CAB17AC5E40CD82137 /* ServerPreset.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		4DEF8471570E8364321B3249 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				DD341ADA17A72657A678BB64 /* Components */,
+				98E35BBAD59706ECC8ED9E15 /* CameraPickerView.swift */,
+				DCF11F74C8C4C2C40E4A4A45 /* CameraStreamView.swift */,
+				28EFBB8F58AC2811254C8C5B /* OnboardingView.swift */,
+				D33CAAB1B1DF277F9B7B3386 /* PreflightCheckView.swift */,
+				EE3EBA2AA753F6C826A30246 /* ServerPresetEditView.swift */,
+				1249CFE00D3ECE59B6A649AD /* ServerPresetsView.swift */,
+				2B71BECD81357A2B5420EED9 /* SettingsView.swift */,
+				41186F5DE2FAB150A6757D29 /* SourceSelectionView.swift */,
+				CCEE3F4EA04A9B698E84D07A /* TAKImportView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		4EC07CFF88F4E03AEAAC285D /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				DE98D6B559C734BD8BDE6CEA /* WatchPayload.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		5AC58CAC90FB357162549704 /* SentinelWatch */ = {
+			isa = PBXGroup;
+			children = (
+				173EA203036C2392F1140EE3 /* Info.plist */,
+				83F9017EE3ECB38DB3AC7B21 /* SentinelWatchApp.swift */,
+			);
+			path = SentinelWatch;
+			sourceTree = "<group>";
+		};
+		61D55A83B670809F0E385DDF = {
+			isa = PBXGroup;
+			children = (
+				BF779A7389DC6A465408CB8F /* Sentinel */,
+				C4F4E4B5D0B3FE677817A984 /* SentinelTests */,
+				5AC58CAC90FB357162549704 /* SentinelWatch */,
+				43252CE4C9A7110F050B81A7 /* SentinelWidget */,
+				4EC07CFF88F4E03AEAAC285D /* Shared */,
+				C5D0962FF722C3DA1D97FAE3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		97C0BA692EC2B89E41F12802 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				02B2B54109B8F1AD23757826 /* iCloudSync.swift */,
+				955DDFF8760AC1DFC55DE203 /* Preferences.swift */,
+				A6C84725B11565C2607B1F62 /* PresetStore.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		BF779A7389DC6A465408CB8F /* Sentinel */ = {
+			isa = PBXGroup;
+			children = (
+				4A6DA79E712ACD370C2D0657 /* Models */,
+				C4FBEE896BBD7FF94D6AC289 /* Resources */,
+				DAEC820EE8F207518A3CE870 /* Services */,
+				97C0BA692EC2B89E41F12802 /* Storage */,
+				4DEF8471570E8364321B3249 /* Views */,
+				AFF0C80D3FE7CB2DEFBEC811 /* SentinelApp.swift */,
+			);
+			path = Sentinel;
+			sourceTree = "<group>";
+		};
+		C4F4E4B5D0B3FE677817A984 /* SentinelTests */ = {
+			isa = PBXGroup;
+			children = (
+				EBAFC200D961A553965D5646 /* ServerPresetTests.swift */,
+			);
+			path = SentinelTests;
+			sourceTree = "<group>";
+		};
+		C4FBEE896BBD7FF94D6AC289 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				0593799F5A7EB2E82CDCCF4C /* Assets.xcassets */,
+				7E146963F422BD52D73C01CB /* Localizable.strings */,
+				F4388EE9F0B75BE5F83BF961 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		C5D0962FF722C3DA1D97FAE3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				53150015EBD6724ED2B66739 /* Sentinel.app */,
+				C4DBC216FC4AB7EC35CFF27A /* SentinelTests.xctest */,
+				B90585A449F3406A653D4825 /* SentinelWatch.app */,
+				1DA8A26A91A7D9B0CA9BD799 /* SentinelWidget.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DAEC820EE8F207518A3CE870 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				D58C369BFBBECA7890EC4105 /* AppIntents.swift */,
+				CC30EC65B7081798AE4B23B4 /* CameraService.swift */,
+				CB705D2D6C27238FE24002B7 /* CoTService.swift */,
+				D912EEC01F8CED1349123D2F /* GoProHEVCIngest.swift */,
+				81B1950DCAAF32051EECD836 /* GoProService.swift */,
+				E5128518C49D55ADFB9B6373 /* GoProStreamingBridge.swift */,
+				01F5AAD5D0F923FE591ACE9C /* LiveActivityController.swift */,
+				4D7BDEE6999F2906B597A89C /* LocalRecorder.swift */,
+				F37E90CC547B0A1661C5745D /* LocationService.swift */,
+				BE8CCF763FF9457AA0E52FB0 /* OverlayRenderer.swift */,
+				771F1B1C6BF6E1FF1923086A /* PreflightChecker.swift */,
+				DF71EFC073C2F6C1A70A04C2 /* StreamingService.swift */,
+				EE05E7BBFE90B698B20193B4 /* TakConnectionTest.swift */,
+				B7F6F1963C6CF42C4104DF92 /* TakDataPackageImporter.swift */,
+				984F0B2103740A507433EAB4 /* WatchBridge.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		DD341ADA17A72657A678BB64 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1EE40873B706D1F6E7A3567 /* Sentinel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 46FA62342D93863766310268 /* Build configuration list for PBXNativeTarget "Sentinel" */;
+			buildPhases = (
+				C45052363BA2F811EEE77EE2 /* Sources */,
+				5B402449A3D3BEF6F504424F /* Resources */,
+				C3B01F5DB5C7C2774DCA94EA /* Frameworks */,
+				B678235530C837648B60BE5E /* Embed Foundation Extensions */,
+				F328F98FD475DBCD7593B5B9 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A2571A312AD6FD4A5B67D184 /* PBXTargetDependency */,
+				64C4C922AEC7EBF6AF5E3287 /* PBXTargetDependency */,
+			);
+			name = Sentinel;
+			packageProductDependencies = (
+				43F1FADB139A06C01CDEA291 /* HaishinKit */,
+				7158CB888978C902BAD988B0 /* SRTHaishinKit */,
+				200DEBE7EB6ACA752353A0A7 /* ZIPFoundation */,
+			);
+			productName = Sentinel;
+			productReference = 53150015EBD6724ED2B66739 /* Sentinel.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B16B98BB70C82093488B14B6 /* SentinelTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 74D6B8D1B30737533256FE14 /* Build configuration list for PBXNativeTarget "SentinelTests" */;
+			buildPhases = (
+				3944615092F378F7A50A4B46 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7E033BB3F0F9AA1143004F2B /* PBXTargetDependency */,
+			);
+			name = SentinelTests;
+			productName = SentinelTests;
+			productReference = C4DBC216FC4AB7EC35CFF27A /* SentinelTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CAEBDEF29C6933CD82DDB69F /* SentinelWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8B1CB94FA03E84AD90FEE64E /* Build configuration list for PBXNativeTarget "SentinelWidget" */;
+			buildPhases = (
+				79BCDFB19CCB1EC613714D85 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SentinelWidget;
+			productName = SentinelWidget;
+			productReference = 1DA8A26A91A7D9B0CA9BD799 /* SentinelWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		D2C6F997EA9BEB68A03BAD9F /* SentinelWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 306EB0332C65C363F1DD630C /* Build configuration list for PBXNativeTarget "SentinelWatch" */;
+			buildPhases = (
+				A6DC003669DAEFA47BDC1FC1 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SentinelWatch;
+			productName = SentinelWatch;
+			productReference = B90585A449F3406A653D4825 /* SentinelWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		079160C1D2997F6CD4B7E444 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					A1EE40873B706D1F6E7A3567 = {
+						ProvisioningStyle = Automatic;
+					};
+					B16B98BB70C82093488B14B6 = {
+						ProvisioningStyle = Automatic;
+					};
+					CAEBDEF29C6933CD82DDB69F = {
+						ProvisioningStyle = Automatic;
+					};
+					D2C6F997EA9BEB68A03BAD9F = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 89C175AE332452B56475A208 /* Build configuration list for PBXProject "Sentinel" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+				pt,
+			);
+			mainGroup = 61D55A83B670809F0E385DDF;
+			packageReferences = (
+				FF0B290C20DE7509E3418097 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */,
+				31524612A90C691F26F38B45 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1EE40873B706D1F6E7A3567 /* Sentinel */,
+				B16B98BB70C82093488B14B6 /* SentinelTests */,
+				D2C6F997EA9BEB68A03BAD9F /* SentinelWatch */,
+				CAEBDEF29C6933CD82DDB69F /* SentinelWidget */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5B402449A3D3BEF6F504424F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				08BBD3EA0BAC36A4A6E83446 /* Assets.xcassets in Resources */,
+				ED2095026E14A73478C756F4 /* Localizable.strings in Resources */,
+				82D0EFAF9A672387FFAC483E /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3944615092F378F7A50A4B46 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				337E1E822C6CA0E3215EAF75 /* ServerPresetTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		79BCDFB19CCB1EC613714D85 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F52C44F28BE39A1686F5E4E /* LiveActivityController.swift in Sources */,
+				76A3C0C6ABC7D34D3176362F /* SentinelLiveActivityWidget.swift in Sources */,
+				C04F188D3EA6194870D0ADA4 /* SentinelWidgetBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6DC003669DAEFA47BDC1FC1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CDD39C04C5F7A05A066F9D52 /* SentinelWatchApp.swift in Sources */,
+				C8CA6AA26DC2EE64063B7E3F /* WatchPayload.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C45052363BA2F811EEE77EE2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CC2A89AE8EE3BFAF9E98612A /* AppIntents.swift in Sources */,
+				429192771E05AFF3EBB3690C /* CameraPickerView.swift in Sources */,
+				93E5B99C9668EDA4B9F78EC9 /* CameraService.swift in Sources */,
+				0E5031B415CCFC6424897A01 /* CameraStreamView.swift in Sources */,
+				EC23B6AE7340C60D61770F04 /* CoTEvent.swift in Sources */,
+				74E477B94C58D9D1FAC92DDC /* CoTService.swift in Sources */,
+				F0004C0240475043789192DC /* GoProHEVCIngest.swift in Sources */,
+				75E4099E6B475574A9E7D546 /* GoProService.swift in Sources */,
+				10E5070F21A9EADEDEA8C68E /* GoProStreamingBridge.swift in Sources */,
+				157E987A51C424E459B17E08 /* LiveActivityController.swift in Sources */,
+				5AFEE85127F1089CFCF70A7F /* LocalRecorder.swift in Sources */,
+				BD3E0E75BA0BFA6C15BB6926 /* LocationService.swift in Sources */,
+				BD3A528A569F29BAEFDA0B87 /* OnboardingView.swift in Sources */,
+				F12D25E3267244B5C44478E5 /* OverlayRenderer.swift in Sources */,
+				2085C3142D160CAFD74EB882 /* Preferences.swift in Sources */,
+				3413D14D8AF48692ECF18480 /* PreflightCheckView.swift in Sources */,
+				82FE55F6D52C34A74F732A31 /* PreflightChecker.swift in Sources */,
+				00458ECA1B4402ECC69BFAD6 /* PresetStore.swift in Sources */,
+				8AE5B627E141EDC5E291DF33 /* SentinelApp.swift in Sources */,
+				9E39427EE672983116135E44 /* ServerPreset.swift in Sources */,
+				2F99E39D5907242E056D2C2D /* ServerPresetEditView.swift in Sources */,
+				6A226B4EA23F6AFB2408C0A3 /* ServerPresetsView.swift in Sources */,
+				0D548A89425BE4E795B0FE3B /* SettingsView.swift in Sources */,
+				0A459B59B6CDB41982E5FEE1 /* SourceSelectionView.swift in Sources */,
+				78804C58A0DDAF42B13AC5AB /* StreamingService.swift in Sources */,
+				D132B2A07BEE45FDBC7E530B /* TAKImportView.swift in Sources */,
+				76AFD35BAD2F92D0BD1777B5 /* TakConnectionTest.swift in Sources */,
+				DA323E407B75942937892F41 /* TakDataPackageImporter.swift in Sources */,
+				37B1972CF3599F9E034FB204 /* WatchBridge.swift in Sources */,
+				D46FD6EC6B785BEA0C01777E /* WatchPayload.swift in Sources */,
+				EB725F68C4DDB7DEFE13F064 /* iCloudSync.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		64C4C922AEC7EBF6AF5E3287 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D2C6F997EA9BEB68A03BAD9F /* SentinelWatch */;
+			targetProxy = 654ED3D11904086A6AFF4879 /* PBXContainerItemProxy */;
+		};
+		7E033BB3F0F9AA1143004F2B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1EE40873B706D1F6E7A3567 /* Sentinel */;
+			targetProxy = B886CE0F96823A49446C4687 /* PBXContainerItemProxy */;
+		};
+		A2571A312AD6FD4A5B67D184 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CAEBDEF29C6933CD82DDB69F /* SentinelWidget */;
+			targetProxy = 8F3CCC4FFC21DB98D6494777 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		7E146963F422BD52D73C01CB /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				FEE534B45139173E11868514 /* en */,
+				7BECC4C202FF73AFAAECEDE9 /* pt */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		11BA7B1754D17DB1F212224B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = SentinelWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = org.artyllm.sentinel.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		3176EB6782AA88A5F57F1563 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = SentinelWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.artyllm.sentinel.widget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		515D83C7DB74356AE6D2A1F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5438266AD3364624D7AA85C5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.artyllm.SentinelTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sentinel.app/Sentinel";
+			};
+			name = Debug;
+		};
+		752D30E87D18F1C156F12C36 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7BADBBA7F14D9D2E83457565 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Sentinel/Resources/Sentinel.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = Sentinel/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.artyllm.sentinel;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9F90F027B36B03844C88CD4E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.artyllm.SentinelTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sentinel.app/Sentinel";
+			};
+			name = Release;
+		};
+		A972278A3076F1077365E673 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Sentinel/Resources/Sentinel.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = Sentinel/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.artyllm.sentinel;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B11427C4CD5038DB9D95F4F2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = SentinelWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.artyllm.sentinel.widget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BFAC265A3DBF5BFF00E73C74 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = SentinelWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = org.artyllm.sentinel.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		306EB0332C65C363F1DD630C /* Build configuration list for PBXNativeTarget "SentinelWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				11BA7B1754D17DB1F212224B /* Debug */,
+				BFAC265A3DBF5BFF00E73C74 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		46FA62342D93863766310268 /* Build configuration list for PBXNativeTarget "Sentinel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7BADBBA7F14D9D2E83457565 /* Debug */,
+				A972278A3076F1077365E673 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		74D6B8D1B30737533256FE14 /* Build configuration list for PBXNativeTarget "SentinelTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5438266AD3364624D7AA85C5 /* Debug */,
+				9F90F027B36B03844C88CD4E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		89C175AE332452B56475A208 /* Build configuration list for PBXProject "Sentinel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				752D30E87D18F1C156F12C36 /* Debug */,
+				515D83C7DB74356AE6D2A1F1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8B1CB94FA03E84AD90FEE64E /* Build configuration list for PBXNativeTarget "SentinelWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B11427C4CD5038DB9D95F4F2 /* Debug */,
+				3176EB6782AA88A5F57F1563 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		31524612A90C691F26F38B45 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
+		FF0B290C20DE7509E3418097 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/shogo4405/HaishinKit.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.9.6;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		200DEBE7EB6ACA752353A0A7 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 31524612A90C691F26F38B45 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+		43F1FADB139A06C01CDEA291 /* HaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF0B290C20DE7509E3418097 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
+			productName = HaishinKit;
+		};
+		7158CB888978C902BAD988B0 /* SRTHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF0B290C20DE7509E3418097 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
+			productName = SRTHaishinKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 079160C1D2997F6CD4B7E444 /* Project object */;
+}

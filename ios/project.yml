@@ -76,6 +76,8 @@ targets:
         NSLocalNetworkUsageDescription:
           Push streams to a local MediaMTX or TAK Server on your network.
         NSBonjourServices: ["_rtsp._tcp", "_rtmp._tcp", "_srt._udp"]
+        # Live Activity (Dynamic Island + lock-screen widget).
+        NSSupportsLiveActivities: true
         # Open .zip data packages from Files / AirDrop / share sheet straight into SENTINEL.
         CFBundleDocumentTypes:
           - CFBundleTypeName: TAK Data Package
@@ -102,9 +104,6 @@ targets:
         product: ZIPFoundation
       - target: SentinelWidget   # bundled at app build time
       - target: SentinelWatch    # watchOS companion app — embedded into the iPhone app
-    info:
-      properties:
-        NSSupportsLiveActivities: true   # required to use ActivityKit
 
   SentinelWatch:
     type: application
