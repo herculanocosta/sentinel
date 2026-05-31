@@ -9,13 +9,22 @@ import Combine
 @MainActor
 final class PresetStore: ObservableObject {
     @Published private(set) var presets: [ServerPreset] = []
+    @Published private(set) var iCloudAvailable: Bool
 
     private let defaults: UserDefaults
     private let key = Pref.serverPresets
+    private let cloud = iCloudSync()
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.iCloudAvailable = FileManager.default.ubiquityIdentityToken != nil
         load()
+        // Wire iCloud → local on remote change; local → iCloud on every persist.
+        cloud.onRemoteChange = { [weak self] in
+            self?.mergeFromiCloud()
+        }
+        // Initial merge — if iCloud has presets we don't, pull them in.
+        if iCloudAvailable { mergeFromiCloud() }
     }
 
     private func load() {
@@ -26,6 +35,21 @@ final class PresetStore: ObservableObject {
     private func persist() {
         let data = (try? JSONEncoder().encode(presets)) ?? Data()
         defaults.set(data, forKey: key)
+        if iCloudAvailable { cloud.push(presets) }
+    }
+
+    /// Merge what iCloud has into our local list. Strategy: union by id, iCloud wins on conflict.
+    private func mergeFromiCloud() {
+        guard let remote = cloud.pull() else { return }
+        var byID: [UUID: ServerPreset] = [:]
+        for p in presets { byID[p.id] = p }
+        for p in remote { byID[p.id] = p }    // iCloud overrides
+        let merged = Array(byID.values).sorted { $0.name.lowercased() < $1.name.lowercased() }
+        if merged != presets {
+            presets = merged
+            let data = (try? JSONEncoder().encode(presets)) ?? Data()
+            defaults.set(data, forKey: key)
+        }
     }
 
     // ---- CRUD --------------------------------------------------------------------------------

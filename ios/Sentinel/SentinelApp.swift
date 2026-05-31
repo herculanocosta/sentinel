@@ -33,6 +33,10 @@ final class AppDependencies: ObservableObject {
     let liveActivity = LiveActivityController()
 
     init() {
+        // Expose this dependency graph to App Intents (which run in a separate process and need
+        // a static handle into the running app).
+        SentinelIntentBridge.deps = self
+
         // When the streaming state changes, hand it to the Live Activity controller so the
         // Dynamic Island + lock-screen widget update without each view having to wire it.
         streaming.objectWillChange
@@ -41,23 +45,31 @@ final class AppDependencies: ObservableObject {
                 Task { @MainActor in
                     self.liveActivity.apply(state: self.streaming.state,
                                             stats: self.streaming.stats)
+                    self.watchBridge.publish(state: self.streaming.state,
+                                              stats: self.streaming.stats)
                 }
             }
             .store(in: &cancellables)
     }
+    let watchBridge = WatchBridge()
     private var cancellables = Set<AnyCancellable>()
 }
 
 import Combine
 
-/// Top-level navigation. Always starts on the source-selection screen so the operator picks
-/// what they're streaming before anything else fires up.
+/// Top-level navigation. Shows onboarding once; thereafter, starts on source selection so the
+/// operator picks what they're streaming before anything else fires up.
 struct RootView: View {
     @State private var path = NavigationPath()
+    @AppStorage(Pref.onboardingCompleted) private var onboardingDone: Bool = false
 
     var body: some View {
-        NavigationStack(path: $path) {
-            SourceSelectionView(path: $path)
+        if !onboardingDone {
+            OnboardingView(completed: $onboardingDone)
+        } else {
+            NavigationStack(path: $path) {
+                SourceSelectionView(path: $path)
+            }
         }
     }
 }
