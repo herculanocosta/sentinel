@@ -458,38 +458,14 @@ public class PopupMenuHandler implements SharedPreferences.OnSharedPreferenceCha
             camera2Service.getStream().getGlInterface().setFilter(currentFilter);
         }
 
-        if (showText) {
-            if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                if (Build.VERSION.SDK_INT < 31)
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, this);
-                else
-                    locationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER, 5000, 0, this);
-            }
-
-            camera2Service.getStream().getGlInterface().addFilter(pathText);
-            pathText.setText(pathName, 20f, Color.WHITE, Color.BLACK);
-            pathText.setScale(Math.round(pathName.length() * getAspectRatio()), getVerticalScale());
-            pathText.setPosition(0, 100 - (getVerticalScale() * 3));
-
-            camera2Service.getStream().getGlInterface().addFilter(locationText);
-            locationText.setText("0, 0", 20f, Color.WHITE, Color.BLACK);
-            locationText.setScale(4f, getVerticalScale());
-            locationText.setPosition(0, 100 - (getVerticalScale() * 2));
-
-            camera2Service.getStream().getGlInterface().addFilter(timestamp);
-            String text = getTime();
-            timestamp.setText(text, 20f, Color.WHITE, Color.BLACK);
-            timestamp.setScale(Math.round(text.length() * getAspectRatio()),getVerticalScale());
-            timestamp.setPosition(TranslateTo.BOTTOM_LEFT);
-
-            clock.run();
-        } else {
-            camera2Service.getStream().getGlInterface().removeFilter(pathText);
-            camera2Service.getStream().getGlInterface().removeFilter(timestamp);
-            camera2Service.getStream().getGlInterface().removeFilter(locationText);
-            handler.removeCallbacks(clock);
-            locationManager.removeUpdates(this);
-        }
+        // SENTINEL: the legacy 3-filter text overlay (path + location + timestamp) is disabled.
+        // The GPS/timestamp burn-in is now a single overlay owned by Camera2Service, so always
+        // tear the legacy filters down here to avoid two overlays stacking on the video.
+        try { camera2Service.getStream().getGlInterface().removeFilter(pathText); } catch (Exception ignored) {}
+        try { camera2Service.getStream().getGlInterface().removeFilter(timestamp); } catch (Exception ignored) {}
+        try { camera2Service.getStream().getGlInterface().removeFilter(locationText); } catch (Exception ignored) {}
+        handler.removeCallbacks(clock);
+        try { locationManager.removeUpdates(this); } catch (Exception ignored) {}
     }
 
     Runnable clock = new Runnable() {

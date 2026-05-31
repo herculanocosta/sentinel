@@ -2,6 +2,11 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory android:title="Video Settings">
+        <SwitchPreference
+            android:key="reliability_mode"
+            android:defaultValue="true"
+            android:title="@string/reliability_mode_title"
+            android:summary="@string/reliability_mode_summary" />
         <ListPreference
             android:key="video_source"
             android:title="@string/video_source"

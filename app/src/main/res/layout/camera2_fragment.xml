@@ -334,6 +334,43 @@
             app:maxImageSize="18dp"
             app:srcCompat="@drawable/flashlight_off" />
 
+        <!-- GoPro SD-card record toggle. Independent of the broadcast — the GoPro records to its
+             own SD while we keep ingesting the preview. Visible only when source = GoPro. -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/gopro_record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="3dp"
+            android:backgroundTint="#A6000000"
+            app:tint="@android:color/white"
+            app:rippleColor="#33FFFFFF"
+            app:borderWidth="0dp"
+            android:elevation="0dp"
+            app:elevation="0dp"
+            app:fabCustomSize="38dp"
+            app:maxImageSize="18dp"
+            android:visibility="gone"
+            android:contentDescription="@string/gopro_record_desc"
+            app:srcCompat="@drawable/ic_record" />
+
+        <!-- GoPro hilight tag — drops a bookmark at the current moment in the SD recording. -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/gopro_hilight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="3dp"
+            android:backgroundTint="#A6000000"
+            app:tint="@android:color/white"
+            app:rippleColor="#33FFFFFF"
+            app:borderWidth="0dp"
+            android:elevation="0dp"
+            app:elevation="0dp"
+            app:fabCustomSize="38dp"
+            app:maxImageSize="18dp"
+            android:visibility="gone"
+            android:contentDescription="@string/gopro_hilight_desc"
+            app:srcCompat="@drawable/ic_flag" />
+
         <!-- Rotate the preview/stream orientation (landscape ↔ portrait). The preview adapts live
              and the chosen orientation is what the broadcast uses. -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -351,6 +388,23 @@
             app:maxImageSize="18dp"
             app:srcCompat="@drawable/rotation"
             android:contentDescription="@string/stream_orientation_title" />
+
+        <!-- Toggle the timestamp/location burn-in overlay. White when off, app-color when on. -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/overlay_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="3dp"
+            android:backgroundTint="#A6000000"
+            app:tint="@android:color/white"
+            app:rippleColor="#33FFFFFF"
+            app:borderWidth="0dp"
+            android:elevation="0dp"
+            app:elevation="0dp"
+            app:fabCustomSize="38dp"
+            app:maxImageSize="18dp"
+            android:contentDescription="@string/overlay_toggle_desc"
+            app:srcCompat="@drawable/ic_text_overlay" />
     </LinearLayout>
 
     <!-- ============================================================

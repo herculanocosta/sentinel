@@ -101,6 +101,9 @@ public class Camera2Fragment extends Fragment
     private View screenCaptureOverlay;
     private FloatingActionButton videoSourceButton;
     private FloatingActionButton switchCameraButton;
+    private FloatingActionButton goproRecordButton;
+    private FloatingActionButton goproHilightButton;
+    private FloatingActionButton overlayToggleButton;
     private Slider zoomSlider;
 
     private boolean service_bound = false;
@@ -476,6 +479,33 @@ public class Camera2Fragment extends Fragment
 
         tvRecording.setText(recordEnabled ? "wait" : "off");
         tintDot(recDot, recordEnabled ? COLOR_WARN : COLOR_DIM);
+
+        updateGoProControls();
+    }
+
+    /** Sync the overlay-toggle FAB tint with the current pref (app-color when on, white when off). */
+    private void updateOverlayToggle() {
+        if (overlayToggleButton == null) return;
+        boolean on = pref.getBoolean(Preferences.TEXT_OVERLAY, Preferences.TEXT_OVERLAY_DEFAULT);
+        int tint = on ? requireContext().getColor(R.color.appColor) : 0xFFFFFFFF;
+        overlayToggleButton.setImageTintList(android.content.res.ColorStateList.valueOf(tint));
+    }
+
+    /**
+     * Show GoPro action buttons only when the GoPro is the active source. Tint the record button
+     * red while the GoPro is recording to its SD card so the operator sees the state at a glance.
+     */
+    private void updateGoProControls() {
+        String src = pref.getString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_DEFAULT);
+        boolean show = Preferences.VIDEO_SOURCE_GOPRO.equals(src);
+        if (goproRecordButton != null)  goproRecordButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (goproHilightButton != null) goproHilightButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show && goproRecordButton != null && camera_service != null) {
+            boolean rec = camera_service.isGoProRecording();
+            // Tint the icon red while recording; default white when idle.
+            goproRecordButton.setImageTintList(android.content.res.ColorStateList.valueOf(
+                    rec ? 0xFFE53935 : 0xFFFFFFFF));
+        }
     }
 
     @Override
@@ -604,6 +634,15 @@ public class Camera2Fragment extends Fragment
 
         videoSourceButton = activity.findViewById(R.id.videoSource);
         videoSourceButton.setOnClickListener(this);
+
+        goproRecordButton = activity.findViewById(R.id.gopro_record);
+        if (goproRecordButton != null) goproRecordButton.setOnClickListener(this);
+        goproHilightButton = activity.findViewById(R.id.gopro_hilight);
+        if (goproHilightButton != null) goproHilightButton.setOnClickListener(this);
+        overlayToggleButton = activity.findViewById(R.id.overlay_toggle);
+        if (overlayToggleButton != null) overlayToggleButton.setOnClickListener(this);
+        updateGoProControls();
+        updateOverlayToggle();
 
         zoomSlider = activity.findViewById(R.id.zoom_slider);
         zoomSlider.setOnTouchListener(this);
@@ -1126,6 +1165,39 @@ public class Camera2Fragment extends Fragment
             } else {
                 doStopStream();
             }
+        } else if (id == R.id.gopro_record) {
+            // Toggle the GoPro's SD-card recording (independent of our broadcast).
+            if (camera_service != null) {
+                goproRecordButton.setEnabled(false);   // debounce while the HTTP call is in flight
+                camera_service.goproToggleRecord(nowRecording -> {
+                    goproRecordButton.setEnabled(true);
+                    if (camera_service != null) {
+                        boolean changed = camera_service.isGoProRecording() == nowRecording;
+                        Toast.makeText(activity,
+                                changed ? (nowRecording ? R.string.gopro_record_started : R.string.gopro_record_stopped)
+                                        : R.string.gopro_record_failed,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    updateGoProControls();
+                });
+            }
+        } else if (id == R.id.overlay_toggle) {
+            // Flip the TEXT_OVERLAY pref — the service's listener picks it up and adds/removes
+            // the burn-in filter on the GL pipeline. Toast confirms the new state.
+            boolean now = pref.getBoolean(Preferences.TEXT_OVERLAY, Preferences.TEXT_OVERLAY_DEFAULT);
+            boolean next = !now;
+            pref.edit().putBoolean(Preferences.TEXT_OVERLAY, next).apply();
+            updateOverlayToggle();
+            Toast.makeText(activity,
+                    next ? R.string.overlay_on_toast : R.string.overlay_off_toast,
+                    Toast.LENGTH_SHORT).show();
+        } else if (id == R.id.gopro_hilight) {
+            if (camera_service != null) {
+                camera_service.goproHilight(ok ->
+                        Toast.makeText(activity,
+                                ok ? R.string.gopro_hilight_added : R.string.gopro_hilight_failed,
+                                Toast.LENGTH_SHORT).show());
+            }
         } else if (id == R.id.orientation_rotate) {
             rotateStreamOrientation();
         } else if (id == R.id.switch_camera) {
@@ -1359,6 +1431,9 @@ public class Camera2Fragment extends Fragment
         setStatusState();
 
         Log.d(LOGTAG, "Got pref " + s);
+        if (s != null && s.equals(Preferences.TEXT_OVERLAY)) {
+            updateOverlayToggle();   // sync the FAB tint when the pref changes (e.g. from settings)
+        }
         if (s != null && s.equals(Preferences.VIDEO_SOURCE)) {
             setZoomRange();
             // If video source is no longer Screen, hide the screen-capture overlay.

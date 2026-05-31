@@ -329,6 +329,18 @@
 
     <!-- Self-marker video advertisement -->
     <string name="send_cots_summary">Put a video marker on the TAK map so peers can tap it to watch your live feed</string>
+    <string name="overlay_toggle_desc">Toggle timestamp overlay</string>
+    <string name="overlay_on_toast">Overlay on</string>
+    <string name="overlay_off_toast">Overlay off</string>
+    <string name="reliability_mode_title">Reliability mode</string>
+    <string name="reliability_mode_summary">Caps phone camera to 854×480 @ 24fps so weak vendor camera firmware (purple-bar glitches, sudden freezes) can\'t overwhelm itself. Recommended ON unless you trust your phone at 720p+/30fps.</string>
+    <string name="gopro_record_desc">GoPro record</string>
+    <string name="gopro_hilight_desc">GoPro hilight</string>
+    <string name="gopro_record_started">GoPro recording started</string>
+    <string name="gopro_record_stopped">GoPro recording stopped</string>
+    <string name="gopro_record_failed">GoPro shutter command failed</string>
+    <string name="gopro_hilight_added">HiLight tagged</string>
+    <string name="gopro_hilight_failed">HiLight tag failed</string>
     <string name="atak_callsign">Video marker name</string>
     <string name="atak_callsign_summary">The name shown on the SENTINEL video marker in ATAK</string>
     <string name="atak_self_uid">Self marker UID</string>

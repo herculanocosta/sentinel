@@ -97,7 +97,14 @@ import com.pedro.encoder.input.sources.audio.MicrophoneSource;
 import com.pedro.encoder.input.sources.audio.NoAudioSource;
 import com.pedro.encoder.input.gl.render.filters.object.TextObjectFilterRender;
 import com.pedro.encoder.utils.gl.TranslateTo;
+import com.pedro.encoder.input.video.CameraCallbacks;
+import com.pedro.encoder.input.video.FrameCapturedCallback;
 import com.pedro.encoder.input.sources.video.Camera2Source;
+
+import android.hardware.camera2.CaptureRequest;
+import android.util.Range;
+import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
 import com.pedro.encoder.input.sources.video.ScreenSource;
 import com.pedro.encoder.input.sources.video.VideoSource;
 import com.pedro.encoder.input.video.CameraHelper;
@@ -230,6 +237,29 @@ public class Camera2Service extends Service implements ConnectChecker,
     /** Heartbeat that re-asserts the __video on the self marker (ATAK keeps overwriting it). */
     private final Handler cotHandler = new Handler(Looper.getMainLooper());
     private static final long COT_HEARTBEAT_MS = 3000;
+
+    /* Phone-camera HAL-crash recovery. Some devices (e.g. MediaTek) kill the camera HAL mid-capture
+     * ("Broken pipe"); pedroSG94 gives up after one reopen → frozen preview. We retry restart()
+     * until the HAL is back. Backs off exponentially so a chronically-flaky HAL gets time to settle. */
+    private final Handler cameraRecoveryHandler = new Handler(Looper.getMainLooper());
+    private boolean cameraRecoveryActive = false;
+    private int cameraRecoveryAttempts = 0;
+    private int cameraConsecutiveCrashes = 0;
+    private long cameraLastCrashAtMs = 0;
+    private static final int CAMERA_RECOVERY_MAX = 12;
+    private static final long CAMERA_RECOVERY_DELAY_MS = 1500;
+    private static final long CAMERA_RECOVERY_MAX_DELAY_MS = 20000;
+    private static final long CAMERA_RECOVERY_CONSECUTIVE_WINDOW_MS = 8000;
+
+    /* Frame watchdog. Some HAL stalls don't surface as onCameraError — the camera just stops
+     * delivering frames. Watch the per-frame callback timestamp and trigger recovery proactively
+     * if frames stop arriving. */
+    private volatile long lastFrameAtMs = 0;
+    private boolean frameWatchdogActive = false;
+    private static final long FRAME_WATCHDOG_TICK_MS = 1000;
+    private static final long FRAME_STALL_THRESHOLD_MS = 2500;   // ~75 frames at 30fps
+    private final FrameCapturedCallback frameTimestampCallback =
+            (timestamp, frameNumber) -> lastFrameAtMs = System.currentTimeMillis();
 
     /* GPS/timestamp burn-in overlay (TextObjectFilterRender on the GL pipeline). */
     private TextObjectFilterRender overlayFilter;
@@ -602,6 +632,54 @@ public class Camera2Service extends Service implements ConnectChecker,
 
     public android.net.Network getGoProNetwork() { return goproNetwork; }
     public String getGoProHost() { return goproHost; }
+    public GoProClient getGoProClient() { return goproClient; }
+
+    // ---- GoPro action controls (SD-card recording + hilight tag) -----------------------------
+
+    private boolean goproRecording = false;
+    public boolean isGoProRecording() { return goproRecording; }
+
+    /**
+     * Toggle the GoPro's SD-card recording. Independent of our preview ingest / broadcast — the
+     * GoPro can record locally while we keep pulling the preview for streaming. Runs off the main
+     * thread; the callback fires on the main thread with the new state (true = now recording).
+     */
+    public void goproToggleRecord(java.util.function.Consumer<Boolean> onResult) {
+        final GoProClient c = goproClient;
+        if (c == null) {
+            if (onResult != null) new Handler(Looper.getMainLooper()).post(() -> onResult.accept(goproRecording));
+            return;
+        }
+        final boolean willStart = !goproRecording;
+        executor.execute(() -> {
+            boolean newState = goproRecording;
+            try {
+                if (willStart) { c.shutterStart(); newState = true; }
+                else           { c.shutterStop();  newState = false; }
+                goproRecording = newState;
+            } catch (Exception e) {
+                Log.w(LOGTAG, "GoPro shutter " + (willStart ? "start" : "stop") + " failed", e);
+            }
+            final boolean finalState = newState;
+            if (onResult != null) new Handler(Looper.getMainLooper()).post(() -> onResult.accept(finalState));
+        });
+    }
+
+    /** Add a hilight tag to the current GoPro recording. Fire-and-forget; callback is best-effort. */
+    public void goproHilight(java.util.function.Consumer<Boolean> onResult) {
+        final GoProClient c = goproClient;
+        if (c == null) {
+            if (onResult != null) new Handler(Looper.getMainLooper()).post(() -> onResult.accept(false));
+            return;
+        }
+        executor.execute(() -> {
+            boolean ok = false;
+            try { c.hilightAdd(); ok = true; }
+            catch (Exception e) { Log.w(LOGTAG, "GoPro hilight failed", e); }
+            final boolean finalOk = ok;
+            if (onResult != null) new Handler(Looper.getMainLooper()).post(() -> onResult.accept(finalOk));
+        });
+    }
 
     private NotificationCompat.Action startStreamAction() {
         Intent start_streaming = new Intent();
@@ -690,13 +768,27 @@ public class Camera2Service extends Service implements ConnectChecker,
             prepareEncoders();
             return;
         }
+        // Never bind the camera/GL to a Surface that isn't valid yet. Binding to a stale/not-ready
+        // surface leaves the source rendering into a BufferQueue that gets abandoned on the next
+        // layout/orientation change → the preview freezes with no error. The SurfaceHolder callback
+        // (surfaceCreated/surfaceChanged) re-invokes us once the surface is genuinely valid.
+        android.view.SurfaceHolder previewHolder = (openGlView != null) ? openGlView.getHolder() : null;
+        if (previewHolder == null || previewHolder.getSurface() == null || !previewHolder.getSurface().isValid()) {
+            Log.w(LOGTAG, "startPreview deferred: preview surface not valid yet");
+            return;
+        }
         if (!getStream().isOnPreview()) {
             Log.d(LOGTAG, "Starting Preview");
             try {
                 getStream().startPreview(openGlView, true);
-                // Fresh GL pipeline → (re)attach the burn-in overlay if it's enabled.
+                // Fresh GL pipeline → (re)attach the burn-in overlay if it's enabled, and
+                // (re)install the camera error callback. The latter is critical after a
+                // screen-lock cycle: pedroSG94 rebinds the Camera2Source onto the new SurfaceView
+                // and silently drops the previous callback, which would otherwise leave the next
+                // HAL crash undetected. Reinstall every time.
                 overlayAttached = false;
                 applyTextOverlay();
+                installCameraCallback();
             } catch (SecurityException e) {
                 Log.e(LOGTAG, "Failed to start preview, MediaProjection is no longer valid", e);
                 if (videoSource.equals(Preferences.VIDEO_SOURCE_SCREEN)) {
@@ -712,6 +804,7 @@ public class Camera2Service extends Service implements ConnectChecker,
     public void stopPreview() {
         if (getStream().isOnPreview()) {
             Log.d(LOGTAG, "Stopping Preview");
+            cancelCameraRecovery();   // intentional stop — don't keep reopening the camera
             onGlTornDown();
             getStream().stopPreview();
         }
@@ -1679,6 +1772,12 @@ public class Camera2Service extends Service implements ConnectChecker,
 
         /* Video Preferences */
         fps = Integer.parseInt(preferences.getString(Preferences.VIDEO_FPS, Preferences.VIDEO_FPS_DEFAULT));
+        // Reliability mode caps fps to a rate the HAL can sustain without dropping/corrupting frames.
+        if (preferences.getBoolean(Preferences.RELIABILITY_MODE, Preferences.RELIABILITY_MODE_DEFAULT)
+                && fps > Preferences.RELIABILITY_MODE_FPS) {
+            Log.d(LOGTAG, "Reliability mode: capping fps " + fps + " -> " + Preferences.RELIABILITY_MODE_FPS);
+            fps = Preferences.RELIABILITY_MODE_FPS;
+        }
         record = preferences.getBoolean(Preferences.RECORD_VIDEO, Preferences.RECORD_VIDEO_DEFAULT);
         codec = preferences.getString(Preferences.VIDEO_CODEC, Preferences.VIDEO_CODEC_DEFAULT);
         bitrate = Integer.parseInt(preferences.getString(Preferences.VIDEO_BITRATE, Preferences.VIDEO_BITRATE_DEFAULT));
@@ -1719,6 +1818,7 @@ public class Camera2Service extends Service implements ConnectChecker,
 
         getResolutions();
         prepareEncoders();
+        installCameraCallback();   // auto-recover from vendor camera-HAL crashes
 
         getStream().getStreamClient().setLogs(false);
         if (videoSource.equals(Preferences.VIDEO_SOURCE_DEFAULT)) {
@@ -1764,6 +1864,40 @@ public class Camera2Service extends Service implements ConnectChecker,
     }
 
     /**
+     * Find the largest camera-supported preview size whose width AND height are at or below the
+     * given cap. Returns null if the camera lists no sizes. This avoids forcing the HAL to scale
+     * to an unsupported size — the root cause of partial-frame "purple bar" corruption.
+     */
+    @Nullable
+    private Size pickLargestNativeSizeBelow(int maxW, int maxH) {
+        try {
+            Camera2Source probe = new Camera2Source(getApplicationContext());
+            java.util.List<Size> sizes = probe.getCameraResolutions(CameraHelper.Facing.BACK);
+            if (sizes == null || sizes.isEmpty()) return null;
+            Size best = null;
+            for (Size s : sizes) {
+                if (s.getWidth() <= maxW && s.getHeight() <= maxH) {
+                    if (best == null || (long) s.getWidth() * s.getHeight() > (long) best.getWidth() * best.getHeight()) {
+                        best = s;
+                    }
+                }
+            }
+            if (best == null) {
+                // No size fits under the cap — pick the smallest available (rarer phones).
+                Size smallest = sizes.get(0);
+                for (Size s : sizes) {
+                    if ((long) s.getWidth() * s.getHeight() < (long) smallest.getWidth() * smallest.getHeight()) smallest = s;
+                }
+                best = smallest;
+            }
+            return best;
+        } catch (Throwable t) {
+            Log.w(LOGTAG, "pickLargestNativeSizeBelow failed", t);
+            return null;
+        }
+    }
+
+    /**
      * Full display size often exceeds real-time encoder limits on phone SoCs; scale down evenly.
      */
     @NonNull
@@ -1786,6 +1920,20 @@ public class Camera2Service extends Service implements ConnectChecker,
 
         if (videoSource.equals(Preferences.VIDEO_SOURCE_DEFAULT)) {
             resolution = pickBackCameraResolution();
+            // Reliability mode: clamp to the largest NATIVE size at or below the cap so the HAL
+            // never has to scale. Forcing a non-native resolution (e.g. exactly 854x480 when the
+            // sensor only outputs 720x480 / 1280x720) is what produces the partial-frame "purple
+            // bar" corruption and HAL stalls on weak SoCs.
+            if (preferences.getBoolean(Preferences.RELIABILITY_MODE, Preferences.RELIABILITY_MODE_DEFAULT)) {
+                Size capped = pickLargestNativeSizeBelow(
+                        Preferences.RELIABILITY_MODE_WIDTH, Preferences.RELIABILITY_MODE_HEIGHT);
+                if (capped != null && (capped.getWidth() < resolution.getWidth()
+                        || capped.getHeight() < resolution.getHeight())) {
+                    Log.d(LOGTAG, "Reliability mode: clamping " + resolution.getWidth() + "x"
+                            + resolution.getHeight() + " -> native " + capped.getWidth() + "x" + capped.getHeight());
+                    resolution = capped;
+                }
+            }
             Log.d(LOGTAG, "getResolution ".concat(String.valueOf(resolution.getWidth())).concat(" x ").concat(String.valueOf(resolution.getHeight())));
         }
     }
@@ -1893,10 +2041,12 @@ public class Camera2Service extends Service implements ConnectChecker,
         // app stops doing GoPro work / showing GoPro state with the phone camera selected.
         if (s.equals(Preferences.VIDEO_SOURCE)) {
             String newSource = sharedPreferences.getString(Preferences.VIDEO_SOURCE, Preferences.VIDEO_SOURCE_DEFAULT);
+            if (!Preferences.VIDEO_SOURCE_DEFAULT.equals(newSource)) cancelCameraRecovery();
             if (!Preferences.VIDEO_SOURCE_GOPRO.equals(newSource) && goproClient != null) {
                 Log.d(LOGTAG, "Source no longer GoPro — shutting down GoPro keep-alive/session");
                 try { goproClient.shutdown(); } catch (Exception ignored) {}
                 goproClient = null;
+                goproRecording = false;   // local UI state — we can no longer query the GoPro
                 goproNetwork = null;
             }
         }
@@ -2072,8 +2222,13 @@ public class Camera2Service extends Service implements ConnectChecker,
                         return;
                     }
                     Log.d(LOGTAG, "Started stream to ".concat(url));
-                    // Re-assert the burn-in overlay onto the now-running encoder pipeline.
-                    applyTextOverlay();
+                    // pedroSG94 may drop our error callback when the stream-start re-prepare
+                    // rebinds the Camera2Source — re-install so a later HAL crash still recovers.
+                    installCameraCallback();
+                    // Re-assert the burn-in overlay AFTER the stream's own GL setup settles
+                    // (startStream rebinds filters internally; running synchronously here loses
+                    // to its post-task and the overlay silently vanishes on the live broadcast).
+                    overlayHandler.postDelayed(() -> applyTextOverlay(), 250);
                     if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                             ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         //This will probably never show since the OnBoardingActivity forces users to grant permission before using the app
@@ -2149,6 +2304,7 @@ public class Camera2Service extends Service implements ConnectChecker,
         Log.d(LOGTAG, "stopStream " + error);
         // Disarm auto-reconnect — whether this is a user stop or a give-up, we must not reconnect.
         wasConnected = false;
+        cancelCameraRecovery();
         // Stop re-asserting the self-marker feed and best-effort revoke it (drop the __video) so
         // peers clear the video from the marker promptly. Sent while the CoT transport is still up.
         stopCotHeartbeat();
@@ -2267,10 +2423,12 @@ public class Camera2Service extends Service implements ConnectChecker,
                 return;
             }
             if (overlayFilter == null) overlayFilter = new TextObjectFilterRender();
-            if (!overlayAttached) {
-                getStream().getGlInterface().addFilter(overlayFilter);
-                overlayAttached = true;
-            }
+            // Ensure the overlay is present EXACTLY once. The GL filter list gets rebuilt under us
+            // (prepareEncoders on stream start drops it) while our attached-flag stays true, so the
+            // overlay would silently vanish on the stream. Remove any stale copy, then add fresh.
+            try { getStream().getGlInterface().removeFilter(overlayFilter); } catch (Throwable ignored) {}
+            getStream().getGlInterface().addFilter(overlayFilter);
+            overlayAttached = true;
             ensureLocationUpdates();
             updateOverlayText();
             overlayHandler.removeCallbacks(overlayTick);
@@ -2280,11 +2438,21 @@ public class Camera2Service extends Service implements ConnectChecker,
         }
     }
 
+    private int overlayTickCount = 0;
     private final Runnable overlayTick = new Runnable() {
         @Override public void run() {
             if (!overlayEnabled) return;
-            updateOverlayText();
-            overlayHandler.postDelayed(this, 1000);
+            overlayTickCount++;
+            // Every 5 s, re-apply the filter as a safety net for silent GL rebuilds (camera HAL
+            // recovery, source switch, prepareEncoders re-runs); other ticks just refresh the
+            // text. Re-apply is the heavier op (remove + add → 1-frame gap), so we don't do it
+            // every second — too visible.
+            if (overlayTickCount % 5 == 0) {
+                applyTextOverlay();
+            } else {
+                updateOverlayText();
+                overlayHandler.postDelayed(this, 1000);
+            }
         }
     };
 
@@ -2292,11 +2460,14 @@ public class Camera2Service extends Service implements ConnectChecker,
         if (overlayFilter == null || !overlayAttached) return;
         try {
             String text = buildOverlayText();
+            // setDefaultScale auto-computes the natural-aspect scale (bitmap_w*100/canvas_w,
+            // bitmap_h*100/canvas_h) so the text renders at its REAL size — no distortion.
+            // Do NOT call setScale afterwards; that overrides the natural ratio with arbitrary
+            // percentages and stretches the text full-screen (the previous bug).
             android.graphics.Point enc = getStream().getGlInterface().getEncoderSize();
-            int w = (enc != null && enc.x > 0) ? enc.x : (resolution != null ? resolution.getWidth() : 1920);
-            int h = (enc != null && enc.y > 0) ? enc.y : (resolution != null ? resolution.getHeight() : 1080);
-            float textSize = Math.max(18f, h / 28f);
-            overlayFilter.setText(text, textSize, Color.WHITE);
+            int w = (enc != null && enc.x > 0) ? enc.x : (resolution != null ? resolution.getWidth() : 854);
+            int h = (enc != null && enc.y > 0) ? enc.y : (resolution != null ? resolution.getHeight() : 480);
+            overlayFilter.setText(text, 24f, Color.WHITE, 0x99000000);   // semi-transparent black bg
             overlayFilter.setDefaultScale(w, h);
             overlayFilter.setPosition(TranslateTo.BOTTOM_LEFT);
         } catch (Throwable t) {
@@ -2305,7 +2476,8 @@ public class Camera2Service extends Service implements ConnectChecker,
     }
 
     private String buildOverlayText() {
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
+        // Compact format so the overlay stays a small badge at the bottom-left, not a banner.
+        SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss", Locale.US);
         String stamp;
         if (overlayUtc) {
             df.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -2313,12 +2485,11 @@ public class Camera2Service extends Service implements ConnectChecker,
         } else {
             stamp = df.format(new Date());
         }
-        String cs = (atak_callsign != null && !atak_callsign.isEmpty()) ? atak_callsign + "  " : "";
         Location l = lastKnownLocation;
         String loc = (l != null)
-                ? String.format(Locale.US, "%.5f, %.5f  %.0fm", l.getLatitude(), l.getLongitude(), l.getAltitude())
-                : "no GPS";
-        return cs + stamp + "   " + loc;
+                ? String.format(Locale.US, " %.4f,%.4f", l.getLatitude(), l.getLongitude())
+                : "";
+        return stamp + loc;
     }
 
     private void removeTextOverlay() {
@@ -2533,6 +2704,238 @@ public class Camera2Service extends Service implements ConnectChecker,
     private void stopCotHeartbeat() {
         cotHandler.removeCallbacks(cotHeartbeat);
     }
+
+    // ===== Phone-camera HAL-crash recovery =====================================================
+
+    /**
+     * pedroSG94 camera callback on the active {@link Camera2Source}. The key one is
+     * {@link CameraCallbacks#onCameraError}, fired when the camera device dies under us (a vendor
+     * HAL crash — e.g. MediaTek "Broken pipe"). pedroSG94 retries the open only once and then gives
+     * up → frozen preview. We start a bounded retry loop that calls {@link Camera2Source#restart()}
+     * until the HAL is back and the camera reopens (confirmed by {@link CameraCallbacks#onCameraOpened}).
+     */
+    private final CameraCallbacks cameraCallbacks = new CameraCallbacks() {
+        @Override public void onCameraChanged(CameraHelper.Facing facing) {}
+        @Override public void onCameraOpened() {
+            cameraRecoveryActive = false;
+            cameraRecoveryAttempts = 0;
+            cameraRecoveryHandler.removeCallbacks(cameraRecoveryRunnable);
+            // Reset the watchdog clock so it doesn't fire on the gap between open and first frame.
+            lastFrameAtMs = System.currentTimeMillis();
+            // ANY reopen — recovery, stream-start prepareVideo, source rebind — can land on the
+            // default camera 0 because pedroSG94 picks the camera whose native size best matches
+            // the requested resolution. Restore the user's pick unconditionally; reapply is a
+            // no-op when the open camera already matches, so it can't loop.
+            cameraRecoveryHandler.post(() -> reapplySelectedCamera());
+            // The GL pipeline is rebuilt around a recovery — re-attach the burn-in overlay so it
+            // doesn't silently disappear after a HAL crash. Small delay so the new pipeline settles.
+            overlayHandler.postDelayed(() -> applyTextOverlay(), 300);
+        }
+        @Override public void onCameraError(String error) {
+            long now = System.currentTimeMillis();
+            long delta = cameraLastCrashAtMs == 0 ? -1 : (now - cameraLastCrashAtMs);
+            if (delta > 0 && delta < CAMERA_RECOVERY_CONSECUTIVE_WINDOW_MS) {
+                cameraConsecutiveCrashes++;
+            } else {
+                cameraConsecutiveCrashes = 1;   // unrelated to the previous crash, restart count
+            }
+            cameraLastCrashAtMs = now;
+            Log.w(LOGTAG, "Camera error: " + error
+                    + " — consecutive crashes=" + cameraConsecutiveCrashes
+                    + (delta < 0 ? "" : (" Δ=" + delta + "ms")) + " — starting recovery");
+            scheduleCameraRecovery();
+        }
+        @Override public void onCameraDisconnected() {
+            // A clean disconnect is usually an intentional stop (navigating away). Only recover if
+            // the camera should still be live (foreground preview or an active stream/recording).
+            if (shouldCameraBeLive()) scheduleCameraRecovery();
+        }
+    };
+
+    /** Attach the recovery callback to the active camera source. Idempotent. */
+    private void installCameraCallback() {
+        try {
+            if (!Preferences.VIDEO_SOURCE_DEFAULT.equals(videoSource)) return;
+            VideoSource src = getStream().getVideoSource();
+            if (src instanceof Camera2Source) {
+                Camera2Source cam = (Camera2Source) src;
+                cam.setCameraCallback(cameraCallbacks);
+                tuneCameraForReliability(cam);
+                startFrameWatchdog(cam);
+            }
+        } catch (Throwable t) {
+            Log.w(LOGTAG, "installCameraCallback failed", t);
+        }
+    }
+
+    /**
+     * Subscribe to pedroSG94's per-frame callback to keep {@link #lastFrameAtMs} fresh, and start
+     * a 1-second tick that triggers recovery if the camera stops delivering frames for more than
+     * {@link #FRAME_STALL_THRESHOLD_MS}. This catches silent stalls that the HAL never reports as
+     * an error — the "preview just freezes" failure mode from the field.
+     */
+    private void startFrameWatchdog(Camera2Source cam) {
+        try {
+            cam.enableFrameCaptureCallback(frameTimestampCallback);
+        } catch (Throwable t) {
+            Log.w(LOGTAG, "enableFrameCaptureCallback failed", t);
+        }
+        lastFrameAtMs = System.currentTimeMillis();  // seed; the watchdog grants a grace period
+        if (!frameWatchdogActive) {
+            frameWatchdogActive = true;
+            cameraRecoveryHandler.removeCallbacks(frameWatchdog);
+            cameraRecoveryHandler.postDelayed(frameWatchdog, FRAME_WATCHDOG_TICK_MS);
+        }
+    }
+
+    private final Runnable frameWatchdog = new Runnable() {
+        @Override public void run() {
+            if (!frameWatchdogActive) return;
+            if (!shouldCameraBeLive()) {
+                frameWatchdogActive = false;
+                return;
+            }
+            long now = System.currentTimeMillis();
+            long sinceFrame = now - lastFrameAtMs;
+            if (sinceFrame > FRAME_STALL_THRESHOLD_MS && !cameraRecoveryActive) {
+                Log.w(LOGTAG, "Frame watchdog: no frames for " + sinceFrame + "ms — forcing recovery");
+                lastFrameAtMs = now;   // reset so we don't re-fire while recovery is in flight
+                cameraCallbacks.onCameraError("frame stall watchdog (" + sinceFrame + "ms)");
+            }
+            cameraRecoveryHandler.postDelayed(this, FRAME_WATCHDOG_TICK_MS);
+        }
+    };
+
+    private void stopFrameWatchdog() {
+        frameWatchdogActive = false;
+        cameraRecoveryHandler.removeCallbacks(frameWatchdog);
+    }
+
+    /**
+     * Apply per-request capture hints that materially reduce vendor-HAL crashes — especially the
+     * MediaTek HAL in low light, where the default auto-exposure can pile up requests faster than
+     * the HAL drains them ("Broken pipe" → camera death). Specifically:
+     *
+     * <ul>
+     *   <li>{@code CONTROL_AE_TARGET_FPS_RANGE = [15, fps]} — explicit lower bound lets the HAL
+     *       extend exposure time gracefully instead of choking on requests it can't finish in
+     *       1/{@code fps} seconds.</li>
+     *   <li>{@code CONTROL_AF_MODE = CONTINUOUS_VIDEO} — the HAL's video-optimised AF path; safer
+     *       than whatever default pedroSG94 leaves us with on cold start.</li>
+     *   <li>{@code NOISE_REDUCTION_MODE / EDGE_MODE = FAST} — half the per-frame ISP work compared
+     *       to HIGH_QUALITY, which is what trips up the HAL at 1080p on weaker SoCs.</li>
+     * </ul>
+     *
+     * pedroSG94's {@link Camera2Source#setCustomRequest(Function1)} runs our function on every
+     * capture-request build, so these hints persist across {@link Camera2Source#restart()}.
+     */
+    private void tuneCameraForReliability(Camera2Source cam) {
+        try {
+            final int fpsCap = Math.max(15, fps);   // never cap below 15
+            cam.setCustomRequest(new Function1<CaptureRequest.Builder, Unit>() {
+                @Override public Unit invoke(CaptureRequest.Builder b) {
+                    try {
+                        b.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                                new Range<>(Math.min(15, fpsCap), fpsCap));
+                        b.set(CaptureRequest.CONTROL_AF_MODE,
+                                CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+                        b.set(CaptureRequest.NOISE_REDUCTION_MODE,
+                                CaptureRequest.NOISE_REDUCTION_MODE_FAST);
+                        b.set(CaptureRequest.EDGE_MODE, CaptureRequest.EDGE_MODE_FAST);
+                    } catch (Throwable ignored) { /* unsupported key — fine */ }
+                    return Unit.INSTANCE;
+                }
+            });
+            Log.d(LOGTAG, "Camera tuning applied: AE_FPS=[15," + fpsCap + "], AF=continuous_video, NR/Edge=fast");
+        } catch (Throwable t) {
+            Log.w(LOGTAG, "tuneCameraForReliability failed", t);
+        }
+    }
+
+    /**
+     * After {@link Camera2Source#restart()} (recovery) the camera comes up on the default index 0,
+     * losing the user's pick. Re-open the selected one. Also re-asserts the camera callback so a
+     * SECOND HAL crash later still routes through {@link #cameraCallbacks#onCameraError}.
+     */
+    private void reapplySelectedCamera() {
+        try {
+            if (!Preferences.VIDEO_SOURCE_DEFAULT.equals(videoSource)) return;
+            VideoSource src = getStream().getVideoSource();
+            if (!(src instanceof Camera2Source)) return;
+            Camera2Source cam = (Camera2Source) src;
+            // Re-install the callback unconditionally — pedroSG94 may drop it across a restart().
+            cam.setCameraCallback(cameraCallbacks);
+            tuneCameraForReliability(cam);   // tuning persists across the reopen
+            if (cameraIds.isEmpty() || currentCameraId < 0 || currentCameraId >= cameraIds.size()) return;
+            String want = cameraIds.get(currentCameraId);
+            String have = cam.getCurrentCameraId();
+            if (want != null && !want.equals(have)) {
+                Log.d(LOGTAG, "Post-recovery: restoring user camera pick " + have + " -> " + want);
+                cam.openCameraId(want);
+            }
+        } catch (Throwable t) {
+            Log.w(LOGTAG, "reapplySelectedCamera failed", t);
+        }
+    }
+
+    private boolean shouldCameraBeLive() {
+        return !exiting
+                && Preferences.VIDEO_SOURCE_DEFAULT.equals(videoSource)
+                && (appInForeground || getStream().isStreaming() || getStream().isRecording());
+    }
+
+    private void scheduleCameraRecovery() {
+        if (cameraRecoveryActive) return;          // a retry loop is already running
+        if (!shouldCameraBeLive()) return;
+        cameraRecoveryActive = true;
+        cameraRecoveryAttempts = 0;
+        cameraRecoveryHandler.removeCallbacks(cameraRecoveryRunnable);
+        cameraRecoveryHandler.postDelayed(cameraRecoveryRunnable, currentRecoveryDelayMs());
+    }
+
+    /**
+     * Exponential back-off based on how many crashes in a row we've seen. The MTK HAL on bad nights
+     * crashes repeatedly; if we retry every 1.5s the preview is uselessly stuttery and we make it
+     * worse by piling open() calls on a HAL that's still restarting. Doubles each consecutive
+     * crash, capped at {@link #CAMERA_RECOVERY_MAX_DELAY_MS}.
+     */
+    private long currentRecoveryDelayMs() {
+        int n = Math.max(1, cameraConsecutiveCrashes);
+        long d = CAMERA_RECOVERY_DELAY_MS * (1L << Math.min(n - 1, 4));   // 1.5, 3, 6, 12, 20s cap
+        return Math.min(d, CAMERA_RECOVERY_MAX_DELAY_MS);
+    }
+
+    public void cancelCameraRecovery() {
+        cameraRecoveryActive = false;
+        cameraRecoveryAttempts = 0;
+        cameraRecoveryHandler.removeCallbacks(cameraRecoveryRunnable);
+        stopFrameWatchdog();
+    }
+
+    private final Runnable cameraRecoveryRunnable = new Runnable() {
+        @Override public void run() {
+            if (!cameraRecoveryActive) return;
+            if (!shouldCameraBeLive()) { cameraRecoveryActive = false; return; }
+            cameraRecoveryAttempts++;
+            try {
+                VideoSource src = getStream().getVideoSource();
+                if (src instanceof Camera2Source) {
+                    Log.d(LOGTAG, "Camera recovery attempt " + cameraRecoveryAttempts + "/" + CAMERA_RECOVERY_MAX);
+                    ((Camera2Source) src).restart();   // success is confirmed via onCameraOpened
+                }
+            } catch (Throwable t) {
+                Log.w(LOGTAG, "Camera recovery restart threw (HAL likely still coming back up)", t);
+            }
+            if (cameraRecoveryActive) {
+                if (cameraRecoveryAttempts < CAMERA_RECOVERY_MAX) {
+                    cameraRecoveryHandler.postDelayed(this, currentRecoveryDelayMs());
+                } else {
+                    Log.e(LOGTAG, "Camera recovery gave up after " + cameraRecoveryAttempts + " attempts");
+                    cameraRecoveryActive = false;
+                }
+            }
+        }
+    };
 
     class ICULocationListener implements LocationListener {
         @Override

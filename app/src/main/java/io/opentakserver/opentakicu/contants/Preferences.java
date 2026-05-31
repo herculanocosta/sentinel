@@ -73,6 +73,17 @@ public class Preferences {
     public static final String FORCE_LANDSCAPE = "force_landscape";
     public static final boolean FORCE_LANDSCAPE_DEFAULT = true;
     /**
+     * Reliability mode — clamps the phone camera to a conservative native resolution + fps that
+     * weak/buggy vendor HALs (notably MediaTek) can sustain without dropping frames, corrupting
+     * buffers (visible as a purple bar across the frame), or stalling outright. ON by default; turn
+     * OFF only if you trust your device at 720p+/30fps and want full quality.
+     */
+    public static final String RELIABILITY_MODE = "reliability_mode";
+    public static final boolean RELIABILITY_MODE_DEFAULT = true;
+    public static final int RELIABILITY_MODE_WIDTH = 854;
+    public static final int RELIABILITY_MODE_HEIGHT = 480;
+    public static final int RELIABILITY_MODE_FPS = 24;
+    /**
      * Chosen OUTPUT orientation for the active stream/recording. Set by the pre-stream
      * orientation dialog. "landscape" or "portrait". Kept in sync with {@link #FORCE_LANDSCAPE}
      * (landscape → true, portrait → false) so the existing encoder rotation logic still applies.

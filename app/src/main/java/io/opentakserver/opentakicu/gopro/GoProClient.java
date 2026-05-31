@@ -114,6 +114,21 @@ public final class GoProClient {
 
     public boolean isStreaming() { return streaming.get(); }
 
+    // ---- Camera control endpoints --------------------------------------------------------------
+
+    /**
+     * Start the shutter on the GoPro. In video mode this begins recording to the SD card; in photo
+     * mode this captures a single photo. The recording is independent of the preview stream we're
+     * pulling — recording to SD continues even while we keep ingesting the preview for broadcast.
+     */
+    public void shutterStart() throws IOException { get("/gopro/camera/shutter/start"); }
+
+    /** Stop the shutter (ends SD recording in video mode). No-op for photo capture. */
+    public void shutterStop() throws IOException { get("/gopro/camera/shutter/stop"); }
+
+    /** Add a hilight tag at the current timestamp — a bookmark for later media review. */
+    public void hilightAdd() throws IOException { get("/gopro/camera/hilight/add"); }
+
     public void shutdown() {
         stopPreview();
         scheduler.shutdownNow();
