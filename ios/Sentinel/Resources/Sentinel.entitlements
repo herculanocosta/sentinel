@@ -2,14 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Programmatically join the GoPro Wi-Fi. Must also be enabled in your App ID on
-         developer.apple.com (Capabilities → Hotspot Configuration). -->
-    <key>com.apple.developer.networking.HotspotConfiguration</key>
-    <true/>
-
-    <!-- iCloud key-value store for ServerPreset sync across iPhone + iPad + Watch. No
-         CloudKit container needed — uses the default container for the team. -->
-    <key>com.apple.developer.ubiquity-kvstore-identifier</key>
-    <string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
+	<key>com.apple.developer.networking.HotspotConfiguration</key>
+	<true/>
+	<key>com.apple.developer.networking.networkextension</key>
+	<array>
+		<string>packet-tunnel-provider</string>
+	</array>
 </dict>
 </plist>

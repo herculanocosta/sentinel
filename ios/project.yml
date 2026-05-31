@@ -4,8 +4,9 @@
 name: Sentinel
 options:
   bundleIdPrefix: org.artyllm
+  # Min iOS bumped to 16.2 so we can use the ActivityContent API without availability wrappers.
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "16.2"
   developmentLanguage: en
   # Bundle supports English (Base) + Portuguese. iOS will pick automatically based on user locale.
   knownRegions: [en, pt, Base]
@@ -16,7 +17,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.2"
     TARGETED_DEVICE_FAMILY: "1,2"    # iPhone + iPad
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     CODE_SIGN_STYLE: Automatic
@@ -130,10 +131,9 @@ targets:
     platform: iOS
     sources:
       - SentinelWidget
-      # SentinelLiveAttributes is declared in the app; share the single source file with the
-      # extension so the wire shape stays bit-identical.
-      - path: Sentinel/Services/LiveActivityController.swift
-        compilerFlags: ["-target-min-inlining-version", "min"]
+      # Share only the wire-shape struct, NOT the controller (the controller depends on iPhone
+      # app types like StreamState that aren't in this bundle).
+      - path: Shared/SentinelLiveAttributes.swift
     info:
       path: SentinelWidget/Info.plist
       properties:
