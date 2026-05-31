@@ -78,6 +78,30 @@ targets:
         product: HaishinKit
       - package: HaishinKit
         product: SRTHaishinKit
+      - target: SentinelWidget   # bundled at app build time
+    info:
+      properties:
+        NSSupportsLiveActivities: true   # required to use ActivityKit
+
+  SentinelWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - SentinelWidget
+      # SentinelLiveAttributes is declared in the app; share the single source file with the
+      # extension so the wire shape stays bit-identical.
+      - path: Sentinel/Services/LiveActivityController.swift
+        compilerFlags: ["-target-min-inlining-version", "min"]
+    info:
+      path: SentinelWidget/Info.plist
+      properties:
+        CFBundleDisplayName: SENTINEL Live
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.artyllm.sentinel.widget
+        INFOPLIST_FILE: SentinelWidget/Info.plist
 
   SentinelTests:
     type: bundle.unit-test

@@ -1,7 +1,11 @@
 //
 //  CameraStreamView.swift
-//  Live preview + the record / switch-camera / overlay toggle controls. Mirrors what the Android
-//  Camera2Fragment shows.
+//  Live preview + record / switch-camera / overlay toggle controls. Mirrors what the Android
+//  Camera2Fragment shows, with iOS niceties:
+//    • Quality bars + bitrate pill (top right)
+//    • Thermal/battery banner (top center) when applicable
+//    • Pre-flight modal before going live
+//    • Live Activity is fired in the streaming service on state changes
 //
 
 import SwiftUI
@@ -10,52 +14,62 @@ import AVFoundation
 
 struct CameraStreamView: View {
     @EnvironmentObject var deps: AppDependencies
-    @State private var currentPreset: ServerPreset = ServerPreset(name: "Current")
-    @State private var showingPresets = false
     @AppStorage(Pref.textOverlay) private var overlayOn: Bool = false
+    @AppStorage(Pref.recordVideo) private var recordLocally: Bool = false
+    @State private var showingPresets = false
+    @State private var showingPreflight = false
+    @State private var pendingPreset: ServerPreset?
 
     var body: some View {
         ZStack {
-            // The HaishinKit preview is wired into the camera service once we have a stream.
-            CameraPreview(streaming: deps.streaming)
+            CameraPreview(stream: deps.streaming.activeStream)
                 .ignoresSafeArea()
 
             VStack {
-                HStack {
-                    statePill
-                    Spacer()
-                    Button { showingPresets = true } label: {
-                        Image(systemName: "server.rack")
-                            .padding(10).background(.thinMaterial, in: Circle())
-                    }
-                }
-                .padding()
-
+                topBar
                 Spacer()
-
-                // Bottom control bar
-                HStack(spacing: 28) {
-                    controlButton(systemImage: "arrow.triangle.2.circlepath.camera") {
-                        Task { await deps.streaming.cameraService.switchCamera(on: nil) }
-                    }
-                    recordButton
-                    controlButton(systemImage: overlayOn ? "text.below.photo.fill" : "text.below.photo") {
-                        overlayOn.toggle()
-                    }
-                    .tint(overlayOn ? Color.accentColor : .white)
-                }
-                .padding(.bottom, 30)
+                bottomControls
             }
         }
-        .navigationBarBackButtonHidden(false)
         .sheet(isPresented: $showingPresets) {
             NavigationStack { ServerPresetsView() }
         }
-        .task {
-            deps.location.start()
-            // Seed the current preset from the live STREAM_* prefs.
-            currentPreset = deps.presets.captureCurrent(name: "Current")
+        .sheet(isPresented: $showingPreflight) {
+            if let preset = pendingPreset {
+                PreflightCheckView(preset: preset) {
+                    Task { await deps.streaming.start(preset: preset, recordLocally: recordLocally) }
+                }
+            }
         }
+        .task { deps.location.start() }
+    }
+
+    // MARK: - Top bar
+
+    @ViewBuilder
+    private var topBar: some View {
+        VStack(spacing: 8) {
+            HStack {
+                statePill
+                Spacer()
+                qualityPill
+                Spacer()
+                Button { showingPresets = true } label: {
+                    Image(systemName: "server.rack")
+                        .padding(10).background(.thinMaterial, in: Circle())
+                }
+            }
+            .padding(.horizontal)
+
+            if let warning = deps.streaming.thermalWarning {
+                Label(warning, systemImage: "thermometer.medium")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(.yellow.opacity(0.85), in: Capsule())
+                    .foregroundStyle(.black)
+            }
+        }
+        .padding(.top, 12)
     }
 
     @ViewBuilder
@@ -68,10 +82,37 @@ struct CameraStreamView: View {
         .background(.thinMaterial, in: Capsule())
     }
 
+    @ViewBuilder
+    private var qualityPill: some View {
+        if deps.streaming.state.isLive || deps.streaming.state.isReconnecting {
+            HStack(spacing: 6) {
+                bars(deps.streaming.stats.qualityBars)
+                Text("\(deps.streaming.stats.bitrateKbps) kb/s")
+                    .font(.caption.weight(.semibold))
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(.thinMaterial, in: Capsule())
+        }
+    }
+
+    private func bars(_ count: Int) -> some View {
+        HStack(spacing: 2) {
+            ForEach(0..<4) { idx in
+                Capsule()
+                    .fill(idx < count ? barColor(count) : Color.white.opacity(0.25))
+                    .frame(width: 3, height: CGFloat(6 + idx * 2))
+            }
+        }
+    }
+    private func barColor(_ n: Int) -> Color {
+        switch n { case 0,1: return .red; case 2: return .orange; default: return .green }
+    }
+
     private var stateColor: Color {
         switch deps.streaming.state {
         case .idle: return .gray
-        case .connecting, .reconnecting: return .orange
+        case .connecting: return .orange
+        case .reconnecting: return .orange
         case .live: return .green
         case .failed: return .red
         }
@@ -81,9 +122,26 @@ struct CameraStreamView: View {
         case .idle: return "Ready"
         case .connecting: return "Connecting…"
         case .live: return "Live"
-        case .reconnecting: return "Reconnecting…"
+        case .reconnecting(let n): return "Reconnecting (\(n))"
         case .failed(let e): return e
         }
+    }
+
+    // MARK: - Bottom controls
+
+    @ViewBuilder
+    private var bottomControls: some View {
+        HStack(spacing: 28) {
+            controlButton(systemImage: "arrow.triangle.2.circlepath.camera") {
+                Task { await deps.streaming.cameraService.switchCamera(on: deps.streaming.activeStream) }
+            }
+            recordButton
+            controlButton(systemImage: overlayOn ? "text.below.photo.fill" : "text.below.photo") {
+                overlayOn.toggle()
+            }
+            .tint(overlayOn ? Color.accentColor : .white)
+        }
+        .padding(.bottom, 30)
     }
 
     @ViewBuilder
@@ -100,43 +158,43 @@ struct CameraStreamView: View {
     @ViewBuilder
     private var recordButton: some View {
         Button {
-            Task {
-                if case .live = deps.streaming.state {
-                    await deps.streaming.stop()
-                } else {
-                    let p = deps.presets.captureCurrent(name: "Current")
-                    await deps.streaming.start(preset: p)
-                }
+            if deps.streaming.state.isLive {
+                Task { await deps.streaming.stop() }
+            } else {
+                // Run pre-flight against the live preset before going live.
+                let p = deps.presets.captureCurrent(name: "Current")
+                pendingPreset = p
+                showingPreflight = true
             }
         } label: {
             Circle()
                 .fill(.white)
                 .frame(width: 72, height: 72)
                 .overlay(
-                    Image(systemName: isStreaming ? "stop.fill" : "record.circle")
+                    Image(systemName: deps.streaming.state.isLive ? "stop.fill" : "record.circle")
                         .font(.system(size: 28))
                         .foregroundStyle(.red)
                 )
                 .shadow(radius: 4)
         }
     }
-    private var isStreaming: Bool { if case .live = deps.streaming.state { return true }; return false }
 }
 
-/// HaishinKit's preview UIView wrapped for SwiftUI.
+/// HaishinKit's MTHKView wrapped for SwiftUI. Updates whenever the active stream changes so the
+/// preview binds to it once the stream object exists.
 struct CameraPreview: UIViewRepresentable {
-    let streaming: StreamingService
+    let stream: IOStream?
 
     func makeUIView(context: Context) -> MTHKView {
         let view = MTHKView(frame: .zero)
         view.videoGravity = .resizeAspectFill
-        // The view binds to the stream once one exists; until then it shows black.
-        // CameraStreamView's task() seeds the preset; user taps Record to start.
         return view
     }
+
     func updateUIView(_ uiView: MTHKView, context: Context) {
-        // Attach the active stream so it renders the camera feed (HaishinKit handles this).
-        // Implemented as a lookup against the StreamingService — in this scaffold we don't yet
-        // expose the IOStream publicly; wire up on first stream-start in a follow-up.
+        // Attach the current stream to the preview view. nil → black; HaishinKit handles teardown.
+        Task { @MainActor in
+            if let s = stream { await uiView.attachStream(s) }
+        }
     }
 }
