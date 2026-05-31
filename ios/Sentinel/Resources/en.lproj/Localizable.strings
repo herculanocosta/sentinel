@@ -1,0 +1,146 @@
+/* SENTINEL — English (Base). Keys are the original user-facing strings used in SwiftUI's
+   Text("…"); SwiftUI uses them as the lookup key automatically. */
+
+/* --- Source selection --- */
+"SENTINEL"                              = "SENTINEL";
+"Tactical live-streaming"               = "Tactical live-streaming";
+"Choose a source"                       = "Choose a source";
+"Phone camera"                          = "Phone camera";
+"Front/back, low-light tuned"           = "Front/back, low-light tuned";
+"Screen"                                = "Screen";
+"Capture this app's screen"             = "Capture this app's screen";
+"GoPro"                                 = "GoPro";
+"WiFi link, cellular broadcast"         = "WiFi link, cellular broadcast";
+"Settings"                              = "Settings";
+
+/* --- Camera stream view --- */
+"Ready"                                 = "Ready";
+"Connecting…"                           = "Connecting…";
+"Live"                                  = "Live";
+"Reconnecting (%lld)"                   = "Reconnecting (%lld)";
+"Phone is heating up"                   = "Phone is heating up";
+"Critical heat — bitrate halved"        = "Critical heat — bitrate halved";
+"Battery low (%lld%%)"                  = "Battery low (%lld%%)";
+
+/* --- Server presets --- */
+"Server presets"                        = "Server presets";
+"ACTIVE"                                = "ACTIVE";
+"(unnamed)"                             = "(unnamed)";
+"Applied “%@”"                          = "Applied “%@”";
+"No presets yet"                        = "No presets yet";
+"Tap + to save a streaming destination you can switch to in one tap."
+                                        = "Tap + to save a streaming destination you can switch to in one tap.";
+"New preset"                            = "New preset";
+"Edit preset"                           = "Edit preset";
+"Apply"                                 = "Apply";
+"Edit"                                  = "Edit";
+"Delete"                                = "Delete";
+"Cancel"                                = "Cancel";
+"Save"                                  = "Save";
+"Preset"                                = "Preset";
+"Name"                                  = "Name";
+"Publish — where SENTINEL sends"        = "Publish — where SENTINEL sends";
+"Viewer — what ATAK opens"              = "Viewer — what ATAK opens";
+"Protocol"                              = "Protocol";
+"Address"                               = "Address";
+"Port"                                  = "Port";
+"Stream name / path"                    = "Stream name / path";
+"Username (optional)"                   = "Username (optional)";
+"Password (optional)"                   = "Password (optional)";
+"Use TCP (RTSP)"                        = "Use TCP (RTSP)";
+"Viewer protocol"                       = "Viewer protocol";
+"Observer URL (blank = auto)"           = "Observer URL (blank = auto)";
+"Rebuild from fields"                   = "Rebuild from fields";
+
+/* --- Settings --- */
+"Video"                                 = "Video";
+"Reliability mode"                      = "Reliability mode";
+"Caps capture to 480p / 24fps for the most stable broadcast on weaker iPhones."
+                                        = "Caps capture to 480p / 24fps for the most stable broadcast on weaker iPhones.";
+"Codec"                                 = "Codec";
+"H.264"                                 = "H.264";
+"HEVC (H.265)"                          = "HEVC (H.265)";
+"Frame rate: %lld fps"                  = "Frame rate: %lld fps";
+"Bitrate"                               = "Bitrate";
+"kbps"                                  = "kbps";
+"Overlay"                               = "Overlay";
+"Burn-in timestamp / GPS"               = "Burn-in timestamp / GPS";
+"UTC (off = local time)"                = "UTC (off = local time)";
+"Streaming"                             = "Streaming";
+"ATAK"                                  = "ATAK";
+"Publish video marker on TAK map"       = "Publish video marker on TAK map";
+"Marker name"                           = "Marker name";
+"TAK Server"                            = "TAK Server";
+"TLS (recommended)"                     = "TLS (recommended)";
+"About"                                 = "About";
+"Version"                               = "Version";
+"Repository"                            = "Repository";
+"Import TAK data package"               = "Import TAK data package";
+"Apply server + certs from a .zip your TAK admin gave you"
+                                        = "Apply server + certs from a .zip your TAK admin gave you";
+
+/* --- TAK importer --- */
+"TAK data package"                      = "TAK data package";
+"Choose .zip…"                          = "Choose .zip…";
+"Imported"                              = "Imported";
+"Server"                                = "Server";
+"SSL/TLS"                               = "SSL/TLS";
+"Plain TCP"                             = "Plain TCP";
+"Trust store"                           = "Trust store";
+"Client cert"                           = "Client cert";
+"Description"                           = "Description";
+"Test connection"                       = "Test connection";
+"Testing…"                              = "Testing…";
+"Connection test"                       = "Connection test";
+"TCP"                                   = "TCP";
+"TLS"                                   = "TLS";
+"✓ reachable"                           = "✓ reachable";
+"✓ handshake OK"                        = "✓ handshake OK";
+"✗ failed"                              = "✗ failed";
+"Error"                                 = "Error";
+
+/* --- Pre-flight --- */
+"Pre-flight"                            = "Pre-flight";
+"Camera permission"                     = "Camera permission";
+"Microphone permission"                 = "Microphone permission";
+"GPS permission"                        = "GPS permission";
+"Network reachable"                     = "Network reachable";
+"Streaming server reachable"            = "Streaming server reachable";
+"Disk space for recording"              = "Disk space for recording";
+"Thermal headroom"                      = "Thermal headroom";
+"Battery level"                         = "Battery level";
+"Re-run checks"                         = "Re-run checks";
+"Go live"                               = "Go live";
+"Fix issues to go live"                 = "Fix issues to go live";
+
+/* --- Onboarding --- */
+"Get started"                           = "Get started";
+"Camera"                                = "Camera";
+"We need the camera to capture and stream video."
+                                        = "We need the camera to capture and stream video.";
+"Microphone"                            = "Microphone";
+"We capture audio alongside the video. You can mute mid-stream."
+                                        = "We capture audio alongside the video. You can mute mid-stream.";
+"Location"                              = "Location";
+"Used for the GPS overlay and the TAK marker position. We never share it elsewhere."
+                                        = "Used for the GPS overlay and the TAK marker position. We never share it elsewhere.";
+"Bluetooth"                             = "Bluetooth";
+"Required to pair with GoPro cameras over Bluetooth LE."
+                                        = "Required to pair with GoPro cameras over Bluetooth LE.";
+"Notifications"                         = "Notifications";
+"Used for the Live Activity (Dynamic Island + lock screen) while streaming."
+                                        = "Used for the Live Activity (Dynamic Island + lock screen) while streaming.";
+"Allow"                                 = "Allow";
+"Skip"                                  = "Skip";
+"Granted"                               = "Granted";
+"Continue"                              = "Continue";
+"Ready to stream"                       = "Ready to stream";
+"Enter SENTINEL"                        = "Enter SENTINEL";
+"You can change permissions later in iOS Settings → SENTINEL."
+                                        = "You can change permissions later in iOS Settings → SENTINEL.";
+
+/* --- Camera picker --- */
+"External"                              = "External";
+"Built-in"                              = "Built-in";
+"No external camera connected."         = "No external camera connected.";
+"Auto (best built-in)"                  = "Auto (best built-in)";

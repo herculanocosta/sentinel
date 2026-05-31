@@ -7,6 +7,8 @@ options:
   deploymentTarget:
     iOS: "16.0"
   developmentLanguage: en
+  # Bundle supports English (Base) + Portuguese. iOS will pick automatically based on user locale.
+  knownRegions: [en, pt, Base]
   createIntermediateGroups: true
   groupSortPosition: top
   generateEmptyDirectories: true
@@ -42,6 +44,12 @@ targets:
       - path: Shared          # WatchPayload — shared with the watchOS target
     resources:
       - path: Sentinel/Resources/Assets.xcassets
+        optional: true
+      - path: Sentinel/Resources/en.lproj
+        optional: true
+      - path: Sentinel/Resources/pt.lproj
+        optional: true
+      - path: Sentinel/Resources/PrivacyInfo.xcprivacy
         optional: true
     info:
       path: Sentinel/Info.plist

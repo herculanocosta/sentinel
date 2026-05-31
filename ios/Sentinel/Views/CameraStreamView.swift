@@ -18,6 +18,7 @@ struct CameraStreamView: View {
     @AppStorage(Pref.recordVideo) private var recordLocally: Bool = false
     @State private var showingPresets = false
     @State private var showingPreflight = false
+    @State private var showingCameraPicker = false
     @State private var pendingPreset: ServerPreset?
 
     var body: some View {
@@ -41,6 +42,7 @@ struct CameraStreamView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingCameraPicker) { CameraPickerView() }
         .task { deps.location.start() }
     }
 
@@ -132,9 +134,13 @@ struct CameraStreamView: View {
     @ViewBuilder
     private var bottomControls: some View {
         HStack(spacing: 28) {
+            // Short tap: flip front/back. Long press: full camera picker (built-in + external).
             controlButton(systemImage: "arrow.triangle.2.circlepath.camera") {
                 Task { await deps.streaming.cameraService.switchCamera(on: deps.streaming.activeStream) }
             }
+            .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                showingCameraPicker = true
+            })
             recordButton
             controlButton(systemImage: overlayOn ? "text.below.photo.fill" : "text.below.photo") {
                 overlayOn.toggle()

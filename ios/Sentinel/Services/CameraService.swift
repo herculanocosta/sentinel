@@ -18,8 +18,90 @@ final class CameraService: NSObject, ObservableObject {
     @Published private(set) var zoom: CGFloat = 1.0
     @Published private(set) var zoomRange: ClosedRange<CGFloat> = 1.0...10.0
     @Published private(set) var availableLenses: [LensStop] = []
+    /// All capture devices the user can pick from — built-in cameras + connected USB-C / UVC
+    /// devices on iPad iOS 17+. Updated when the AV session reports a connect/disconnect.
+    @Published private(set) var availableCameras: [CameraOption] = []
+    /// Currently-selected camera. nil → auto (best built-in for `position`).
+    @Published private(set) var selectedCamera: CameraOption?
+
+    /// One row in the camera picker — wraps an `AVCaptureDevice` with a friendly label.
+    struct CameraOption: Identifiable, Hashable {
+        let id: String                  // device.uniqueID
+        let label: String
+        let isExternal: Bool
+        let position: AVCaptureDevice.Position
+        let deviceTypeRaw: String
+
+        /// Look up the live AVCaptureDevice. Returns nil if the camera was unplugged.
+        var device: AVCaptureDevice? { AVCaptureDevice(uniqueID: id) }
+    }
 
     private let defaults = UserDefaults.standard
+    private var deviceObserver: NSObjectProtocol?
+
+    override init() {
+        super.init()
+        refreshAvailableCameras()
+        // Re-scan whenever a device connects/disconnects (USB-C UVC plug events).
+        deviceObserver = NotificationCenter.default.addObserver(
+            forName: .AVCaptureDeviceWasConnected, object: nil, queue: .main
+        ) { [weak self] _ in Task { @MainActor in self?.refreshAvailableCameras() } }
+        _ = NotificationCenter.default.addObserver(
+            forName: .AVCaptureDeviceWasDisconnected, object: nil, queue: .main
+        ) { [weak self] _ in Task { @MainActor in self?.refreshAvailableCameras() } }
+    }
+
+    deinit { if let d = deviceObserver { NotificationCenter.default.removeObserver(d) } }
+
+    /// Build the picker list. Includes external (USB-C UVC) cameras on iPad iOS 17+.
+    func refreshAvailableCameras() {
+        var types: [AVCaptureDevice.DeviceType] = [
+            .builtInTripleCamera, .builtInDualWideCamera, .builtInDualCamera,
+            .builtInWideAngleCamera, .builtInUltraWideCamera, .builtInTelephotoCamera
+        ]
+        if #available(iOS 17.0, *) { types.append(.external) }
+
+        let session = AVCaptureDevice.DiscoverySession(
+            deviceTypes: types, mediaType: .video, position: .unspecified)
+
+        availableCameras = session.devices.map { dev in
+            let isExt: Bool
+            if #available(iOS 17.0, *) { isExt = (dev.deviceType == .external) } else { isExt = false }
+            let label = friendlyLabel(for: dev, isExternal: isExt)
+            return CameraOption(id: dev.uniqueID, label: label, isExternal: isExt,
+                                position: dev.position, deviceTypeRaw: dev.deviceType.rawValue)
+        }
+    }
+
+    /// Pick a specific camera (e.g. the user tapped a row in the camera-picker sheet). Pass nil
+    /// to revert to auto (best built-in for `position`).
+    func selectCamera(_ option: CameraOption?, on stream: IOStream?) async {
+        selectedCamera = option
+        if let dev = option?.device {
+            position = dev.position == .unspecified ? .back : dev.position
+            if let stream = stream { try? await stream.attachCamera(dev) }
+            refreshZoomCapabilities(for: dev)
+        } else if let stream = stream, let dev = currentCamera() {
+            try? await stream.attachCamera(dev)
+            refreshZoomCapabilities(for: dev)
+        }
+    }
+
+    /// Human-readable name for the picker.
+    private func friendlyLabel(for dev: AVCaptureDevice, isExternal: Bool) -> String {
+        if isExternal {
+            return dev.localizedName.isEmpty ? "External camera" : dev.localizedName
+        }
+        let face = (dev.position == .front) ? "Front" : "Back"
+        switch dev.deviceType {
+        case .builtInTripleCamera:    return "\(face) Triple"
+        case .builtInDualWideCamera:  return "\(face) Dual Wide"
+        case .builtInDualCamera:      return "\(face) Dual"
+        case .builtInUltraWideCamera: return "\(face) Ultrawide"
+        case .builtInTelephotoCamera: return "\(face) Telephoto"
+        default:                      return "\(face) Wide"
+        }
+    }
 
     /// A discrete optical zoom stop the user can tap (e.g. .5x / 1x / 3x on iPhone Pro).
     struct LensStop: Identifiable, Hashable {
@@ -30,10 +112,11 @@ final class CameraService: NSObject, ObservableObject {
 
     // MARK: - Device discovery
 
-    /// Pick the best camera for the current position. iPhone Pro: builtInTripleCamera (UW/Wide/Tele
-    /// fused into one device with a continuous virtual zoom). Otherwise builtInDualWideCamera
-    /// (UW/Wide), then fall back to plain wide.
+    /// Resolve to the AVCaptureDevice we'll capture from. If the user explicitly picked one in the
+    /// camera picker, use that. Otherwise auto-pick: builtInTripleCamera (UW/Wide/Tele fused with a
+    /// continuous virtual zoom), then DualWide, then DualCamera, then plain wide.
     private func currentCamera() -> AVCaptureDevice? {
+        if let chosen = selectedCamera?.device { return chosen }
         let preferred: [AVCaptureDevice.DeviceType] = [
             .builtInTripleCamera,
             .builtInDualWideCamera,

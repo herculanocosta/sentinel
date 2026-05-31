@@ -51,6 +51,7 @@ final class AppDependencies: ObservableObject {
     let streaming = StreamingService()
     let cot = CoTService()
     let goPro = GoProService()
+    let goProBridge = GoProStreamingBridge()
     let liveActivity = LiveActivityController()
 
     init() {

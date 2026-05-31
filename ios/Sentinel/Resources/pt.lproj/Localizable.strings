@@ -1,0 +1,145 @@
+/* SENTINEL — Português (pt-PT). */
+
+/* --- Seleção de fonte --- */
+"SENTINEL"                              = "SENTINEL";
+"Tactical live-streaming"               = "Transmissão tática ao vivo";
+"Choose a source"                       = "Escolha uma fonte";
+"Phone camera"                          = "Câmara do telemóvel";
+"Front/back, low-light tuned"           = "Frente/traseira, ajustada para pouca luz";
+"Screen"                                = "Ecrã";
+"Capture this app's screen"             = "Capturar o ecrã desta aplicação";
+"GoPro"                                 = "GoPro";
+"WiFi link, cellular broadcast"         = "Vídeo por Wi-Fi, transmissão por dados móveis";
+"Settings"                              = "Definições";
+
+/* --- Câmara --- */
+"Ready"                                 = "Pronto";
+"Connecting…"                           = "A ligar…";
+"Live"                                  = "Ao vivo";
+"Reconnecting (%lld)"                   = "A reconectar (%lld)";
+"Phone is heating up"                   = "O telemóvel está a aquecer";
+"Critical heat — bitrate halved"        = "Calor crítico — bitrate reduzido a metade";
+"Battery low (%lld%%)"                  = "Bateria fraca (%lld%%)";
+
+/* --- Presets de servidor --- */
+"Server presets"                        = "Servidores guardados";
+"ACTIVE"                                = "ATIVO";
+"(unnamed)"                             = "(sem nome)";
+"Applied “%@”"                          = "Aplicado “%@”";
+"No presets yet"                        = "Ainda não tem servidores";
+"Tap + to save a streaming destination you can switch to in one tap."
+                                        = "Toque em + para guardar um destino e poder mudar com um toque.";
+"New preset"                            = "Novo servidor";
+"Edit preset"                           = "Editar servidor";
+"Apply"                                 = "Aplicar";
+"Edit"                                  = "Editar";
+"Delete"                                = "Apagar";
+"Cancel"                                = "Cancelar";
+"Save"                                  = "Guardar";
+"Preset"                                = "Servidor";
+"Name"                                  = "Nome";
+"Publish — where SENTINEL sends"        = "Publicar — para onde o SENTINEL envia";
+"Viewer — what ATAK opens"              = "Visualização — o que o ATAK abre";
+"Protocol"                              = "Protocolo";
+"Address"                               = "Endereço";
+"Port"                                  = "Porta";
+"Stream name / path"                    = "Nome do stream / caminho";
+"Username (optional)"                   = "Utilizador (opcional)";
+"Password (optional)"                   = "Palavra-passe (opcional)";
+"Use TCP (RTSP)"                        = "Usar TCP (RTSP)";
+"Viewer protocol"                       = "Protocolo de visualização";
+"Observer URL (blank = auto)"           = "URL do observador (vazio = automático)";
+"Rebuild from fields"                   = "Reconstruir a partir dos campos";
+
+/* --- Definições --- */
+"Video"                                 = "Vídeo";
+"Reliability mode"                      = "Modo fiável";
+"Caps capture to 480p / 24fps for the most stable broadcast on weaker iPhones."
+                                        = "Limita a captura a 480p / 24fps para a transmissão mais estável em iPhones mais fracos.";
+"Codec"                                 = "Codec";
+"H.264"                                 = "H.264";
+"HEVC (H.265)"                          = "HEVC (H.265)";
+"Frame rate: %lld fps"                  = "Taxa de imagens: %lld fps";
+"Bitrate"                               = "Bitrate";
+"kbps"                                  = "kbps";
+"Overlay"                               = "Sobreposição";
+"Burn-in timestamp / GPS"               = "Carimbo de hora / GPS no vídeo";
+"UTC (off = local time)"                = "UTC (desligado = hora local)";
+"Streaming"                             = "Transmissão";
+"ATAK"                                  = "ATAK";
+"Publish video marker on TAK map"       = "Publicar marcador de vídeo no mapa TAK";
+"Marker name"                           = "Nome do marcador";
+"TAK Server"                            = "Servidor TAK";
+"TLS (recommended)"                     = "TLS (recomendado)";
+"About"                                 = "Acerca de";
+"Version"                               = "Versão";
+"Repository"                            = "Repositório";
+"Import TAK data package"               = "Importar pacote de dados TAK";
+"Apply server + certs from a .zip your TAK admin gave you"
+                                        = "Aplicar servidor + certificados a partir de um .zip do admin do TAK";
+
+/* --- Importador TAK --- */
+"TAK data package"                      = "Pacote de dados TAK";
+"Choose .zip…"                          = "Escolher .zip…";
+"Imported"                              = "Importado";
+"Server"                                = "Servidor";
+"SSL/TLS"                               = "SSL/TLS";
+"Plain TCP"                             = "TCP simples";
+"Trust store"                           = "Trust store";
+"Client cert"                           = "Certificado do cliente";
+"Description"                           = "Descrição";
+"Test connection"                       = "Testar ligação";
+"Testing…"                              = "A testar…";
+"Connection test"                       = "Teste de ligação";
+"TCP"                                   = "TCP";
+"TLS"                                   = "TLS";
+"✓ reachable"                           = "✓ acessível";
+"✓ handshake OK"                        = "✓ handshake OK";
+"✗ failed"                              = "✗ falhou";
+"Error"                                 = "Erro";
+
+/* --- Verificação pré-transmissão --- */
+"Pre-flight"                            = "Verificações prévias";
+"Camera permission"                     = "Permissão da câmara";
+"Microphone permission"                 = "Permissão do microfone";
+"GPS permission"                        = "Permissão de GPS";
+"Network reachable"                     = "Rede acessível";
+"Streaming server reachable"            = "Servidor de streaming acessível";
+"Disk space for recording"              = "Espaço em disco para gravação";
+"Thermal headroom"                      = "Margem térmica";
+"Battery level"                         = "Nível de bateria";
+"Re-run checks"                         = "Repetir verificações";
+"Go live"                               = "Ir para o ar";
+"Fix issues to go live"                 = "Resolva os problemas para ir para o ar";
+
+/* --- Introdução --- */
+"Get started"                           = "Começar";
+"Camera"                                = "Câmara";
+"We need the camera to capture and stream video."
+                                        = "Precisamos da câmara para capturar e transmitir vídeo.";
+"Microphone"                            = "Microfone";
+"We capture audio alongside the video. You can mute mid-stream."
+                                        = "Capturamos áudio com o vídeo. Pode silenciar a meio da transmissão.";
+"Location"                              = "Localização";
+"Used for the GPS overlay and the TAK marker position. We never share it elsewhere."
+                                        = "Usada para a sobreposição de GPS e posição do marcador TAK. Nunca a partilhamos.";
+"Bluetooth"                             = "Bluetooth";
+"Required to pair with GoPro cameras over Bluetooth LE."
+                                        = "Necessário para emparelhar com câmaras GoPro por Bluetooth LE.";
+"Notifications"                         = "Notificações";
+"Used for the Live Activity (Dynamic Island + lock screen) while streaming."
+                                        = "Usadas para a Atividade ao Vivo (Dynamic Island + ecrã bloqueado) durante a transmissão.";
+"Allow"                                 = "Permitir";
+"Skip"                                  = "Ignorar";
+"Granted"                               = "Concedida";
+"Continue"                              = "Continuar";
+"Ready to stream"                       = "Pronto para transmitir";
+"Enter SENTINEL"                        = "Entrar no SENTINEL";
+"You can change permissions later in iOS Settings → SENTINEL."
+                                        = "Pode alterar permissões depois em Definições do iOS → SENTINEL.";
+
+/* --- Seleção de câmara --- */
+"External"                              = "Externa";
+"Built-in"                              = "Integrada";
+"No external camera connected."         = "Nenhuma câmara externa ligada.";
+"Auto (best built-in)"                  = "Automático (melhor integrada)";

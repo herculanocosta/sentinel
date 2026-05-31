@@ -8,20 +8,49 @@ Target: **iOS 16+**, SwiftUI, Swift Package Manager.
 
 ## Status
 
-Phased delivery. Tick = working end-to-end. Half-tick = scaffolded with TODOs.
-
 - [x] Project scaffold (XcodeGen-driven)
-- [x] SwiftUI source-selection landing
-- [x] Phone camera → RTMP/RTSP/SRT (via HaishinKit)
-- [x] Server presets (publish/viewer split, protocol picker — matches Android UX)
-- [x] GPS/timestamp burn-in overlay (CoreImage filter chain on the capture pipeline)
-- [x] ATAK CoT video marker (`b-i-v` type, structured `ConnectionEntry`)
-- [~] Camera control buttons (switch front/back, zoom, flashlight)
-- [~] Settings screen
-- [ ] GoPro WiFi-in + cellular-out (BLE pair + `NEHotspotConfiguration` + interface-bound
-      `NWConnection` streaming) — biggest remaining piece
-- [ ] Background streaming (audio background mode keeps it alive screen-off)
-- [ ] App Store submission readiness
+- [x] SwiftUI source-selection landing + onboarding flow
+- [x] Phone camera → RTMP/RTSP/SRT (HaishinKit) + adaptive bitrate
+- [x] Smooth multi-lens zoom + tap-to-focus + external camera (iPad iOS 17+)
+- [x] Server presets (publish/viewer split, protocol picker, iCloud sync)
+- [x] GPS/timestamp burn-in overlay (CoreImage)
+- [x] ATAK CoT video marker (`b-i-v`, structured `ConnectionEntry`)
+- [x] TAK data package (.zip) importer + connection test (share-sheet integration)
+- [x] Auto-reconnect with exponential backoff
+- [x] Local recording while streaming
+- [x] Pre-flight check screen
+- [x] Battery + thermal guard
+- [x] Live Activity / Dynamic Island
+- [x] Siri Shortcuts / App Intents
+- [x] Apple Watch companion (WatchConnectivity)
+- [x] GoPro WiFi-in + cellular-out (BLE pair, `NEHotspotConfiguration`,
+      `NWConnection(requiredInterfaceType: .wifi/.cellular)`, HEVC ingest, encoder feed)
+- [x] Localization (English + Portuguese)
+- [x] Privacy manifest (`PrivacyInfo.xcprivacy`)
+- [x] TestFlight CI workflow
+
+## App Store submission checklist
+
+When you're ready to ship a TestFlight build:
+
+1. **App ID** on developer.apple.com matches `org.artyllm.sentinel`. Enable Capabilities:
+   - Hotspot Configuration (GoPro Wi-Fi join)
+   - iCloud (Key-value storage)
+   - Background Modes (Audio + Bluetooth Central)
+   - Push Notifications (for App Intents / Live Activity)
+2. **App Store Connect** → My Apps → create the app record with the same bundle ID.
+3. **GitHub secrets** under repo Settings → Secrets:
+   - `APP_STORE_CONNECT_API_KEY_ID`
+   - `APP_STORE_CONNECT_API_ISSUER_ID`
+   - `APP_STORE_CONNECT_API_KEY_P8` (paste the entire `.p8` file)
+   - `IOS_DEVELOPER_TEAM_ID`
+4. Push a tag: `git tag ios-v2.0.1 && git push origin ios-v2.0.1`.
+   The `.github/workflows/ios-testflight.yml` workflow archives, exports, and uploads.
+5. **Privacy nutrition label** in App Store Connect mirrors `PrivacyInfo.xcprivacy`:
+   - Data collected: precise location, photos/videos, audio
+   - Use: app functionality only
+   - Linked to user: no
+   - Used for tracking: no
 
 ## Build
 
